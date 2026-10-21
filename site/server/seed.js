@@ -1,0 +1,304 @@
+// Таксономия интересов и расписание событий Казани для первичного наполнения базы.
+
+export const CATEGORIES = [
+  { key: 'sport', title: 'Спорт', emoji: '🏃', sort: 1, subs: [
+    { key: 'run', title: 'Бег', emoji: '👟', kw: ['пробежка', 'забег', 'бегать', 'марафон', 'паркран', 'run'] },
+    { key: 'yoga', title: 'Йога', emoji: '🧘', kw: ['растяжка', 'медитация', 'пилатес', 'стретчинг'] },
+    { key: 'skate', title: 'Каток', emoji: '⛸️', kw: ['коньки', 'лёд', 'лед', 'хоккей'] },
+    { key: 'team', title: 'Командные игры', emoji: '⚽', kw: ['футбол', 'волейбол', 'баскетбол', 'мяч'] },
+    { key: 'walk', title: 'Прогулки и квесты', emoji: '🧭', kw: ['квест', 'прогулка', 'поход', 'ориентирование'] },
+    { key: 'climb', title: 'Скалодром', emoji: '🧗', kw: ['скалолазание', 'боулдеринг', 'лазать'] },
+  ] },
+  { key: 'games', title: 'Игры', emoji: '🎲', sort: 2, subs: [
+    { key: 'quiz', title: 'Квизы', emoji: '🧠', kw: ['квиз', 'викторина', 'интеллектуальная игра', 'мозгобойня', 'quiz'] },
+    { key: 'board', title: 'Настолки', emoji: '🎲', kw: ['настольные игры', 'настолки', 'днд', 'dnd', 'каркассон', 'манчкин', 'игротека'] },
+    { key: 'chess', title: 'Шахматы', emoji: '♟️', kw: ['шахматы', 'го', 'нарды', 'блиц', 'турнир'] },
+    { key: 'mafia', title: 'Мафия', emoji: '🕵️', kw: ['мафия', 'ролевая игра', 'детектив'] },
+  ] },
+  { key: 'social', title: 'Общение', emoji: '💬', sort: 3, subs: [
+    { key: 'stol', title: 'Стол на шестерых', emoji: '🍽️', kw: ['ужин', 'незнакомцы', 'новые люди', 'знакомства', 'стол'] },
+    { key: 'lang', title: 'Разговорные клубы', emoji: '🗣️', kw: ['английский', 'татарский', 'speaking club', 'language', 'язык', 'english'] },
+    { key: 'dating', title: 'Быстрые свидания', emoji: '💘', kw: ['свидание', 'speed dating', 'знакомства', 'пара'] },
+    { key: 'networking', title: 'Нетворкинг', emoji: '🤝', kw: ['нетворкинг', 'networking', 'знакомства по работе', 'контакты'] },
+    { key: 'newcomers', title: 'Встречи новичков', emoji: '👋', kw: ['новички', 'переехал', 'переехала', 'новенький', 'студенты'] },
+  ] },
+  { key: 'music', title: 'Музыка', emoji: '🎵', sort: 4, subs: [
+    { key: 'concert', title: 'Концерты', emoji: '🎸', kw: ['концерт', 'живая музыка', 'группа', 'рок', 'рэп', 'инди', 'гитара'] },
+    { key: 'jazz', title: 'Джаз', emoji: '🎷', kw: ['джаз', 'блюз', 'джем', 'саксофон'] },
+    { key: 'party', title: 'Вечеринки', emoji: '🪩', kw: ['вечеринка', 'диджей', 'dj', 'электроника', 'танцы', 'тусовка', 'пати', 'клуб', 'техно'] },
+    { key: 'classical', title: 'Классика', emoji: '🎻', kw: ['классика', 'симфонический', 'филармония', 'орган', 'оркестр', 'опера'] },
+    { key: 'market', title: 'Маркеты', emoji: '💿', kw: ['маркет', 'винил', 'ярмарка', 'пластинки', 'своп'] },
+  ] },
+  { key: 'knowledge', title: 'Знания', emoji: '📚', sort: 5, subs: [
+    { key: 'lecture', title: 'Лекции', emoji: '🎓', kw: ['лекция', 'лекторий', 'наука', 'история', 'урбанистика'] },
+    { key: 'it', title: 'ИТ и стартапы', emoji: '💻', kw: ['митап', 'айти', 'it', 'разработка', 'программирование', 'стартап', 'хакатон', 'meetup', 'код'] },
+    { key: 'book', title: 'Книжные клубы', emoji: '📖', kw: ['книжный клуб', 'книги', 'чтение', 'литература', 'роман'] },
+    { key: 'workshop', title: 'Мастер-классы', emoji: '🏺', kw: ['мастер-класс', 'воркшоп', 'керамика', 'рисование', 'своими руками', 'гончарный', 'акварель'] },
+  ] },
+  { key: 'culture', title: 'Культура', emoji: '🎭', sort: 6, subs: [
+    { key: 'theatre', title: 'Театр', emoji: '🎭', kw: ['театр', 'спектакль', 'перформанс', 'постановка', 'куклы'] },
+    { key: 'standup', title: 'Стендап', emoji: '🎤', kw: ['стендап', 'стэндап', 'комики', 'юмор', 'открытый микрофон', 'standup', 'comedy'] },
+    { key: 'cinema', title: 'Кино', emoji: '🎬', kw: ['кино', 'фильм', 'сеанс', 'кинотеатр', 'показ', 'cinema', 'movie'] },
+    { key: 'exhibition', title: 'Выставки', emoji: '🖼️', kw: ['выставка', 'музей', 'галерея', 'арт', 'художник', 'искусство'] },
+    { key: 'tour', title: 'Экскурсии', emoji: '🏛️', kw: ['экскурсия', 'прогулка по городу', 'краеведение', 'кремль', 'слобода'] },
+  ] },
+];
+
+export const ORGANIZERS = {
+  'Квиз, плиз! Казань': { slug: 'quiz-please', about: 'Крупнейшая сеть квизов в России. В Казани играем по вторникам и четвергам, команда от 2 до 9 человек.' },
+  'Партия': { slug: 'partiya', about: 'Шахматный клуб по средам в кофейне «Мелок». Любой уровень, доски и часы на месте.' },
+  'Пиво, пешки, два слона': { slug: 'pivo-peshki', about: 'Шахматные вечера без строгих правил: блиц, разговоры, до 40 человек.' },
+  '5 вёрст Казань': { slug: '5verst', about: 'Бесплатный забег на 5 км каждую субботу в 9:00. Бежать, идти, катить коляску — можно всё.' },
+  'Yaratam Chess': { slug: 'yaratam-chess', about: 'Шахматное сообщество, «Сообщество года» по версии Enter. Воскресные турниры в Нацбиблиотеке.' },
+  'Нацбиблиотека РТ': { slug: 'nbrt', about: 'Национальная библиотека Республики Татарстан: клубы, показы, лекции. Вход свободный.' },
+  'Тюбетей': { slug: 'tubetey', about: 'Сеть татарской кухни. Ведём разговорный клуб татарского за чаем.' },
+  'Stand Up Club Kazan': { slug: 'standup-club', about: 'Клуб стендапа на Баумана. Открытые микрофоны и сольные концерты. 18+.' },
+  'Comedy Crew': { slug: 'comedy-crew', about: 'Объединение казанских комиков. Большие концерты по пятницам.' },
+  'Айдагез': { slug: 'aydagez', about: 'Наши собственные форматы: «Стол на шестерых» и встречи для тех, кто недавно в Казани.' },
+  'SKYER': { slug: 'skyer', about: 'Быстрые свидания в ресторанах центра. Возрастные группы 25–35 и 35–45.' },
+  'Мойчай': { slug: 'moychay', about: 'Чайная на Каюма Насыри. Игровечера настолок по субботам, 60 игр в наличии.' },
+  'Kazan Run': { slug: 'kazan-run', about: 'Беговой клуб. Воскресные пробежки в Горкинско-Ометьевском лесу, группы 5 и 10 км.' },
+  'Смена': { slug: 'smena', about: 'Центр современной культуры: лекторий, книжный магазин, выставки.' },
+  'Угол': { slug: 'ugol', about: 'Театральная лаборатория на 60 мест. Современная драматургия.' },
+  'MOÑ': { slug: 'mon', about: 'Татарская театральная площадка в Нацбиблиотеке. Спектакли с переводом.' },
+  'Кинотеатр «Мир»': { slug: 'kino-mir', about: 'Единственный в Казани кинотеатр авторского кино и фестивальных программ.' },
+  'Нефть': { slug: 'neft', about: 'Клуб живой музыки на Университетской. Субботние концерты.' },
+  'Старый рояль': { slug: 'staryi-royal', about: 'Бар с джазовыми вечерами по четвергам и джемом во втором сете.' },
+  'Surf Coffee Казань': { slug: 'surf-coffee', about: 'Сеть из 20 кофеен. Кофейные квесты по городу по субботам.' },
+  'Точка кипения Казань': { slug: 'tochka-kipeniya', about: 'Пространство в ИТ-парке. Митапы и встречи ИТ-сообщества.' },
+  'ИТ-парк': { slug: 'itpark', about: 'ИТ-парк им. Башира Рамеева: хакатоны, стартап-хаб.' },
+  'Адонис': { slug: 'adonis', about: 'Творческий кластер на бывшей фабрике: лекции, маркеты, кофейня.' },
+  'Глина': { slug: 'glina', about: 'Керамическая мастерская. Мастер-классы для начинающих.' },
+  'Театр «Экият»': { slug: 'ekiyat', about: 'Татарский государственный театр кукол. Спектакли для детей от 3 лет.' },
+  'Татарская филармония': { slug: 'tatfil', about: 'ГБКЗ им. Сайдашева. Симфонический и камерный репертуар, Пушкинская карта.' },
+  'KFU Buddy Club': { slug: 'kfu-buddy', about: 'Студенческий клуб КФУ для иностранных и местных студентов.' },
+  'Дирекция парков Казани': { slug: 'parki', about: 'Городские парки и набережные: катки, ярмарки, праздники.' },
+  'Yoga Park Kazan': { slug: 'yoga-park', about: 'Бесплатная йога в парках по выходным, коврик приносите свой.' },
+  'Werk': { slug: 'werk', about: 'Клуб электронной музыки. Вечеринки по субботам, 18+.' },
+  'Скалодром Rock Zona': { slug: 'rock-zona', about: 'Скалодром для взрослых и детей. Пробные занятия с инструктором.' },
+  'Галерея «БИЗON»': { slug: 'bizon', about: 'Галерея современного искусства в центре Казани.' },
+  'Казань глазами инженера': { slug: 'glazami-inzhenera', about: 'Экскурсии по городу с архитектором: от Кремля до Старо-Татарской слободы.' },
+  'Футбол 5×5 Казань': { slug: 'football-5x5', about: 'Любительский футбол в манеже. Собираем команды на месте.' },
+};
+
+// weekdays: 0 = воскресенье … 6 = суббота
+export const SERIES = [
+  { key: 'quiz-please', title: 'Квиз, плиз!', cat: 'games', sub: 'quiz', emoji: '🧠', weekdays: [2, 4], time: '19:30', duration: 150, price: 700, lang: 'ru',
+    venue: 'Бар «Соль»', address: 'ул. Профсоюзная, 12', district: 'Вахитовский', organizer: 'Квиз, плиз! Казань', with: ['friends', 'duo'],
+    registration: { type: 'external', label: 'на сайте организатора', url: 'https://kzn.quizplease.ru/' }, capacity: 120,
+    description: 'Командная игра из семи раундов: музыка, картинки, логика. Команда от 2 до 9 человек. Если команды нет — напишите организатору, подсадят к другим.' },
+  { key: 'party-chess', title: 'Шахматы по средам «Партия»', cat: 'games', sub: 'chess', emoji: '♟️', weekdays: [3], time: '19:00', duration: 180, price: 0, lang: 'ru',
+    venue: 'Кофейня «Мелок»', address: 'ул. Каюма Насыри, 8а', district: 'Вахитовский', organizer: 'Партия', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 30,
+    description: 'Открытые партии для любого уровня: от «помню, как ходит конь» до рейтинга. Доски и часы на месте, приходите одни — пару найдём.' },
+  { key: 'beer-pawns', title: 'Пиво, пешки, два слона', cat: 'games', sub: 'chess', emoji: '🍺', weekdays: [5], time: '20:00', duration: 180, price: 300, lang: 'ru',
+    venue: 'Бар «Фомин»', address: 'ул. Пушкина, 18', district: 'Вахитовский', organizer: 'Пиво, пешки, два слона', with: ['solo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 40,
+    description: 'Шахматный вечер без строгих правил: блиц, разговоры и до 40 человек. В цену входит первый напиток.' },
+  { key: '5verst', title: 'Пробежка «5 вёрст»', cat: 'sport', sub: 'run', emoji: '🏃', weekdays: [6], time: '09:00', duration: 60, price: 0, lang: 'ru',
+    venue: 'ЦПКиО им. Горького', address: 'ул. Николая Ершова, 1', district: 'Вахитовский', organizer: '5 вёрст Казань', with: ['solo', 'duo', 'friends', 'kids'], solo: true,
+    registration: { type: 'here' }, capacity: 300,
+    description: 'Бесплатный забег на 5 км каждую субботу. Бежать, идти, катить коляску — можно всё. Регистрация один раз, дальше просто приходите.' },
+  { key: 'yaratam-chess', title: 'Yaratam Chess: воскресный турнир', cat: 'games', sub: 'chess', emoji: '🏆', weekdays: [0], time: '15:00', duration: 180, price: 0, lang: 'ru',
+    venue: 'Национальная библиотека РТ', address: 'ул. Пушкина, 86', district: 'Вахитовский', organizer: 'Yaratam Chess', with: ['solo', 'kids'], solo: true,
+    registration: { type: 'here' }, capacity: 60,
+    description: 'Любительский турнир по швейцарской системе, 5 туров по 10 минут. Сообщество года по версии Enter.' },
+  { key: 'english-club', title: 'English Speaking Club', cat: 'social', sub: 'lang', emoji: '🗨️', weekdays: [2], time: '19:00', duration: 90, price: 0, lang: 'en',
+    venue: 'Национальная библиотека РТ', address: 'ул. Пушкина, 86', district: 'Вахитовский', organizer: 'Нацбиблиотека РТ', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 25,
+    description: 'Разговорный клуб на английском. Уровень от B1, темы объявляют за день. Ведущий — носитель или преподаватель.' },
+  { key: 'tatar-club', title: 'Әйдә сөйләшик: разговорный клуб татарского', cat: 'social', sub: 'lang', emoji: '🗣️', weekdays: [4], time: '19:00', duration: 90, price: 300, lang: 'tt',
+    venue: 'Кафе «Тюбетей»', address: 'ул. Баумана, 36', district: 'Вахитовский', organizer: 'Тюбетей', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 20,
+    description: 'Говорим по-татарски за чаем с эчпочмаком. Подходит тем, кто учит язык с нуля: ведущий переключается на русский, когда нужно.' },
+  { key: 'book-club', title: 'Книжный клуб Нацбиблиотеки', cat: 'knowledge', sub: 'book', emoji: '📖', weekdays: [0], time: '14:00', duration: 120, price: 0, lang: 'ru',
+    venue: 'Национальная библиотека РТ', address: 'ул. Пушкина, 86', district: 'Вахитовский', organizer: 'Нацбиблиотека РТ', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 30,
+    description: 'Обсуждаем одну книгу в месяц. Читать до конца не обязательно: разбираем и тех, кто остановился на середине.' },
+  { key: 'standup-open', title: 'Открытый микрофон Stand Up Club Kazan', cat: 'culture', sub: 'standup', emoji: '🎤', weekdays: [1, 3], time: '20:00', duration: 120, price: 300, lang: 'ru',
+    venue: 'Stand Up Club Kazan', address: 'ул. Баумана, 44/8', district: 'Вахитовский', organizer: 'Stand Up Club Kazan', with: ['solo', 'duo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 80,
+    description: 'Новые шутки от 10–12 комиков. Проверка материала: что-то зайдёт, что-то нет, и это часть удовольствия. 18+.' },
+  { key: 'comedy-crew', title: 'Большой концерт Comedy Crew', cat: 'culture', sub: 'standup', emoji: '😂', weekdays: [5], time: '20:00', duration: 120, price: 900, lang: 'ru',
+    venue: 'Лофт «Фабрика Алафузова»', address: 'ул. Гладилова, 55', district: 'Кировский', organizer: 'Comedy Crew', with: ['duo', 'friends'],
+    registration: { type: 'external', label: 'на Timepad', url: 'https://timepad.ru/' }, capacity: 200,
+    description: 'Проверенный материал, четыре комика по 20 минут, ведущий. Цена итоговая, с сервисным сбором.' },
+  { key: 'stol6', title: 'Стол на шестерых', cat: 'social', sub: 'stol', emoji: '🍽️', weekdays: [3, 6], time: '19:30', duration: 150, price: 900, lang: 'ru',
+    venue: 'Ресторан в центре (адрес за сутки)', address: 'адрес пришлём за сутки', district: 'Вахитовский', organizer: 'Айдагез', with: ['solo'], solo: true, stol: true,
+    registration: { type: 'here' }, capacity: 6,
+    description: 'Ужин шести незнакомых людей с ведущим. Мы подбираем состав по возрасту и интересам, бронируем стол и задаём первые темы. Еда и напитки оплачиваются отдельно.\n\nДепозит 300 ₽ засчитывается в цену. Отмена раньше чем за 48 часов — возврат 100%. Если за 48 часов до встречи меньше 4 гостей, объединяем столы или возвращаем деньги. Только 18+.' },
+  { key: 'speed-dating', title: 'Быстрые свидания SKYER', cat: 'social', sub: 'dating', emoji: '💘', weekdays: [0], time: '18:00', duration: 150, price: 1000, lang: 'ru',
+    venue: 'Ресторан «Утка в котелке»', address: 'ул. Университетская, 14', district: 'Вахитовский', organizer: 'SKYER', with: ['solo'], solo: true,
+    registration: { type: 'external', label: 'на svidi.ru', url: 'https://svidi.ru/kazan/' }, capacity: 30,
+    description: '15 знакомств по 5 минут, после вечера взаимные контакты приходят на почту. Возрастные группы 25–35 и 35–45.' },
+  { key: 'boardgames', title: 'Игровечер настолок в «Мойчае»', cat: 'games', sub: 'board', emoji: '🎲', weekdays: [6], time: '16:00', duration: 240, price: 400, lang: 'ru',
+    venue: 'Чайная «Мойчай»', address: 'ул. Каюма Насыри, 8а', district: 'Вахитовский', organizer: 'Мойчай', with: ['solo', 'friends', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 24,
+    description: 'Ведущий объясняет правила, в наличии 60 игр. Можно прийти одному: за столы сажаем по 4–5 человек. В цену входит чай без ограничений.' },
+  { key: 'kazan-run', title: 'Воскресная пробежка Kazan Run', cat: 'sport', sub: 'run', emoji: '👟', weekdays: [0], time: '10:00', duration: 60, price: 0, lang: 'ru',
+    venue: 'Горкинско-Ометьевский лес', address: 'вход с ул. Дубравной', district: 'Советский', organizer: 'Kazan Run', with: ['solo', 'duo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 100,
+    description: 'Две группы: лёгкая 5 км и темповая 10 км. После пробежки — кофе у входа. Подходит начинающим.' },
+  { key: 'smena-lecture', title: 'Лекторий «Смены»', cat: 'knowledge', sub: 'lecture', emoji: '🎓', weekdays: [4], time: '19:30', duration: 90, price: 0, lang: 'ru',
+    venue: 'ЦСК «Смена»', address: 'ул. Бурхана Шахиди, 7', district: 'Вахитовский', organizer: 'Смена', with: ['solo', 'duo'], solo: true, pushkin: true,
+    registration: { type: 'here' }, capacity: 70,
+    description: 'Лекции об искусстве, городе и науке от исследователей и художников. Тема недели публикуется в понедельник.' },
+  { key: 'ugol-play', title: 'Спектакль лаборатории «Угол»', cat: 'culture', sub: 'theatre', emoji: '🎭', weekdays: [6], time: '19:00', duration: 100, price: 1200, lang: 'ru',
+    venue: 'Лаборатория «Угол»', address: 'ул. Парижской Коммуны, 25', district: 'Вахитовский', organizer: 'Угол', with: ['duo', 'friends', 'solo'], solo: true, pushkin: true,
+    registration: { type: 'external', label: 'в кассе «Угла»', url: 'https://ugol.timepad.ru/' }, capacity: 60,
+    description: 'Камерная сцена на 60 мест, современная драматургия. Какой именно спектакль — смотрите на странице кассы.' },
+  { key: 'mon-play', title: 'Спектакль театральной площадки MOÑ', cat: 'culture', sub: 'theatre', emoji: '🌙', weekdays: [5], time: '19:00', duration: 90, price: 1500, lang: 'tt',
+    venue: 'MOÑ', address: 'ул. Пушкина, 86 (Нацбиблиотека)', district: 'Вахитовский', organizer: 'MOÑ', with: ['duo', 'friends', 'solo'], solo: true, pushkin: true,
+    registration: { type: 'external', label: 'в кассе MOÑ', url: 'https://mon.timepad.ru/' }, capacity: 90,
+    description: 'Татарский современный театр с русскими субтитрами или синхронным переводом. Цена итоговая.' },
+  { key: 'cinema-mir', title: 'Вечерний сеанс в кинотеатре «Мир»', cat: 'culture', sub: 'cinema', emoji: '🎬', weekdays: [5, 6, 0], time: '20:30', duration: 120, price: 400, lang: 'ru',
+    venue: 'Кинотеатр «Мир»', address: 'ул. Достоевского, 30', district: 'Вахитовский', organizer: 'Кинотеатр «Мир»', with: ['solo', 'duo', 'friends'], solo: true, pushkin: true,
+    registration: { type: 'external', label: 'в кассе кинотеатра', url: 'https://mirkino.ru/' }, capacity: 150,
+    description: 'Авторское кино и фестивальные программы. Расписание сеансов — на сайте кинотеатра.' },
+  { key: 'cinema-club', title: 'Киноклуб «Смены»: показ и обсуждение', cat: 'culture', sub: 'cinema', emoji: '🎞️', weekdays: [2], time: '19:30', duration: 150, price: 0, lang: 'ru',
+    venue: 'ЦСК «Смена»', address: 'ул. Бурхана Шахиди, 7', district: 'Вахитовский', organizer: 'Смена', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 60,
+    description: 'Фильм из фестивальных программ и разговор после показа с киноведом. Вход свободный, по записи.' },
+  { key: 'neft-concert', title: 'Концерт в клубе «Нефть»', cat: 'music', sub: 'concert', emoji: '🎸', weekdays: [6], time: '21:00', duration: 180, price: 800, lang: 'ru',
+    venue: 'Клуб «Нефть»', address: 'ул. Университетская, 7', district: 'Вахитовский', organizer: 'Нефть', with: ['friends', 'duo'],
+    registration: { type: 'external', label: 'на Qtickets', url: 'https://qtickets.ru/' }, capacity: 400,
+    description: 'Живая музыка по субботам: от инди до рэпа. Кто играет на этой неделе — на странице билетов.' },
+  { key: 'jazz', title: 'Джазовый вечер в «Старом рояле»', cat: 'music', sub: 'jazz', emoji: '🎷', weekdays: [4], time: '20:00', duration: 120, price: 500, lang: 'ru',
+    venue: 'Бар «Старый рояль»', address: 'ул. Карла Маркса, 42', district: 'Вахитовский', organizer: 'Старый рояль', with: ['duo', 'solo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 50,
+    description: 'Трио играет стандарты, во втором сете — джем, к которому можно присоединиться. Вход в цену, напитки отдельно.' },
+  { key: 'werk-party', title: 'Вечеринка в Werk', cat: 'music', sub: 'party', emoji: '🪩', weekdays: [6], time: '23:00', duration: 300, price: 600, lang: 'ru',
+    venue: 'Клуб Werk', address: 'ул. Тази Гиззата, 6', district: 'Вахитовский', organizer: 'Werk', with: ['friends', 'duo'],
+    registration: { type: 'external', label: 'на сайте клуба', url: 'https://werk.club/' }, capacity: 500,
+    description: 'Электроника от местных и приезжих диджеев до утра. 18+, дресс-код свободный.' },
+  { key: 'surf-quest', title: 'Кофейный квест Surf Coffee', cat: 'sport', sub: 'walk', emoji: '☕', weekdays: [6], time: '13:00', duration: 180, price: 0, lang: 'ru',
+    venue: 'Старт у Surf Coffee на Баумана', address: 'ул. Баумана, 19', district: 'Вахитовский', organizer: 'Surf Coffee Казань', with: ['duo', 'friends', 'kids'],
+    registration: { type: 'here' }, capacity: 100,
+    description: 'Прогулка по пяти кофейням сети с заданиями на каждой точке. Призы участникам, прошедшим все пять.' },
+  { key: 'itpark-meetup', title: 'Митап в «Точке кипения» ИТ-парка', cat: 'knowledge', sub: 'it', emoji: '💻', weekdays: [2], time: '19:00', duration: 120, price: 0, lang: 'ru',
+    venue: 'ИТ-парк им. Башира Рамеева', address: 'ул. Спартаковская, 2', district: 'Вахитовский', organizer: 'Точка кипения Казань', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 120,
+    description: 'Доклады от местных команд, потом нетворкинг с пиццей. Подходит джунам и тем, кто ищет работу в ИТ.' },
+  { key: 'adonis-lecture', title: 'Воскресная лекция в «Адонисе»', cat: 'knowledge', sub: 'lecture', emoji: '🏭', weekdays: [0], time: '17:00', duration: 90, price: 0, lang: 'ru',
+    venue: 'Кластер «Адонис»', address: 'ул. Адоратского, 1', district: 'Ново-Савиновский', organizer: 'Адонис', with: ['solo', 'duo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 80,
+    description: 'Лекции об урбанистике, дизайне и локальной истории на бывшей фабрике. После лекции работают маркет и кофейня.' },
+  { key: 'ceramics', title: 'Мастер-класс по керамике', cat: 'knowledge', sub: 'workshop', emoji: '🏺', weekdays: [6], time: '12:00', duration: 150, price: 1500, lang: 'ru',
+    venue: 'Мастерская «Глина»', address: 'ул. Петербургская, 50', district: 'Вахитовский', organizer: 'Глина', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 8,
+    description: 'Лепим чашку или тарелку за один визит, обжиг и глазурь — через две недели забираете готовое. Материалы входят в цену.' },
+  { key: 'ekiyat', title: 'Детский спектакль в театре кукол «Экият»', cat: 'culture', sub: 'theatre', emoji: '🧸', weekdays: [6, 0], time: '11:00', duration: 60, price: 600, lang: 'ru',
+    venue: 'Театр кукол «Экият»', address: 'ул. Петербургская, 57', district: 'Вахитовский', organizer: 'Театр «Экият»', with: ['kids'],
+    registration: { type: 'external', label: 'в кассе театра', url: 'https://kazan-puppet.ru/' }, capacity: 250,
+    description: 'Спектакли для детей от 3 лет, продолжительность около часа. Цена за одного зрителя.' },
+  { key: 'philharmonic', title: 'Концерт в ГБКЗ им. Сайдашева', cat: 'music', sub: 'classical', emoji: '🎻', weekdays: [3], time: '18:30', duration: 100, price: 500, lang: 'ru',
+    venue: 'Татарская филармония', address: 'ул. Павлюхина, 73', district: 'Приволжский', organizer: 'Татарская филармония', with: ['duo', 'solo', 'kids'], solo: true, pushkin: true,
+    registration: { type: 'external', label: 'в кассе филармонии', url: 'https://tatfil.ru/' }, capacity: 800,
+    description: 'Симфонический и камерный репертуар, по средам — абонементные концерты. Доступно по Пушкинской карте.' },
+  { key: 'yoga-park', title: 'Йога в парке Горького', cat: 'sport', sub: 'yoga', emoji: '🧘', weekdays: [6, 0], time: '10:00', duration: 75, price: 0, lang: 'ru',
+    venue: 'ЦПКиО им. Горького, площадка у фонтана', address: 'ул. Николая Ершова, 1', district: 'Вахитовский', organizer: 'Yoga Park Kazan', with: ['solo', 'duo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 40,
+    description: 'Хатха-йога для любого уровня на свежем воздухе. В холодную погоду занятие переносится в павильон рядом. Коврик свой.' },
+  { key: 'rink', title: 'Каток в парке «Чёрное озеро»', cat: 'sport', sub: 'skate', emoji: '⛸️', weekdays: [5, 6, 0], time: '18:00', duration: 120, price: 350, lang: 'ru',
+    venue: 'Парк «Чёрное озеро»', address: 'ул. Дзержинского', district: 'Вахитовский', organizer: 'Дирекция парков Казани', with: ['duo', 'friends', 'kids', 'solo'], solo: true,
+    registration: { type: 'external', label: 'на сайте парков', url: 'https://parkikazani.ru/' }, capacity: 200,
+    description: 'Открытый каток с музыкой и прокатом коньков. Вечерний сеанс, прокат оплачивается отдельно.' },
+  { key: 'football', title: 'Любительский футбол 5×5', cat: 'sport', sub: 'team', emoji: '⚽', weekdays: [3], time: '20:00', duration: 90, price: 300, lang: 'ru',
+    venue: 'Манеж «Тулпар»', address: 'ул. Чистопольская, 71', district: 'Ново-Савиновский', organizer: 'Футбол 5×5 Казань', with: ['solo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 20,
+    description: 'Собираем команды на месте, уровень любительский. Форма любая, бутсы не обязательны.' },
+  { key: 'climb-trial', title: 'Скалодром: пробное занятие', cat: 'sport', sub: 'climb', emoji: '🧗', weekdays: [2, 4], time: '19:00', duration: 90, price: 900, lang: 'ru',
+    venue: 'Скалодром Rock Zona', address: 'ул. Декабристов, 85б', district: 'Московский', organizer: 'Скалодром Rock Zona', with: ['solo', 'duo', 'kids'], solo: true,
+    registration: { type: 'here' }, capacity: 10,
+    description: 'Инструктор, страховка и прокат обуви включены. Подходит тем, кто никогда не лазал.' },
+  { key: 'bizon', title: 'Выставка в галерее «БИЗON»', cat: 'culture', sub: 'exhibition', emoji: '🖼️', weekdays: [6, 0], time: '12:00', duration: 480, price: 300, lang: 'ru',
+    venue: 'Галерея «БИЗON»', address: 'ул. Баумана, 44', district: 'Вахитовский', organizer: 'Галерея «БИЗON»', with: ['solo', 'duo', 'friends'], solo: true, pushkin: true,
+    registration: { type: 'external', label: 'в кассе галереи', url: 'https://bizon.gallery/' }, capacity: 300,
+    description: 'Текущая выставка современных казанских художников. Экскурсии по выставке в 14:00 и 17:00.' },
+  { key: 'sloboda-tour', title: 'Экскурсия по Старо-Татарской слободе', cat: 'culture', sub: 'tour', emoji: '🏛️', weekdays: [0], time: '12:00', duration: 120, price: 400, lang: 'ru',
+    venue: 'Старт у мечети Марджани', address: 'ул. Каюма Насыри, 17', district: 'Вахитовский', organizer: 'Казань глазами инженера', with: ['solo', 'duo', 'friends', 'kids'], solo: true,
+    registration: { type: 'here' }, capacity: 25,
+    description: 'Два часа пешком по слободе с архитектором: дома купцов, мечети, озеро Кабан. Идём в любую погоду.' },
+];
+
+// Разовые события: смещение в днях от даты первичного сидирования.
+export const ONE_OFFS = [
+  { key: 'aydagez-launch', title: 'Встреча читателей «Айдагез»: куда ходить в Казани', cat: 'social', sub: 'newcomers', emoji: '👋', offset: 2, time: '19:00', duration: 120, price: 0, lang: 'ru',
+    venue: 'Кофейня «Мелок»', address: 'ул. Каюма Насыри, 8а', district: 'Вахитовский', organizer: 'Айдагез', with: ['solo', 'duo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 25,
+    description: 'Знакомимся с теми, кто недавно переехал в Казань. Расскажем, какие клубы и встречи есть в городе, и соберём, чего не хватает.' },
+  { key: 'hackathon', title: 'Хакатон ИТ-парка: сервисы для города', cat: 'knowledge', sub: 'it', emoji: '🛠️', offset: 5, time: '10:00', duration: 600, price: 0, lang: 'ru',
+    venue: 'ИТ-парк им. Башира Рамеева', address: 'ул. Спартаковская, 2', district: 'Вахитовский', organizer: 'ИТ-парк', with: ['solo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 150,
+    description: 'Однодневный хакатон, команды собираются на месте. Призовой фонд и предложения стажировок от резидентов.' },
+  { key: 'vinyl-market', title: 'Виниловый маркет и диджей-сет', cat: 'music', sub: 'market', emoji: '💿', offset: 6, time: '14:00', duration: 360, price: 0, lang: 'ru',
+    venue: 'Кластер «Адонис»', address: 'ул. Адоратского, 1', district: 'Ново-Савиновский', organizer: 'Адонис', with: ['solo', 'duo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 300,
+    description: 'Пластинки от 300 ₽, обмен, живые сеты местных диджеев до вечера. Вход свободный.' },
+  { key: 'tatar-cinema', title: 'Показ татарского кино с обсуждением', cat: 'culture', sub: 'cinema', emoji: '🎞️', offset: 9, time: '19:00', duration: 150, price: 0, lang: 'tt',
+    venue: 'Национальная библиотека РТ', address: 'ул. Пушкина, 86', district: 'Вахитовский', organizer: 'Нацбиблиотека РТ', with: ['solo', 'duo'], solo: true,
+    registration: { type: 'here' }, capacity: 100,
+    description: 'Фильм на татарском с русскими субтитрами, после показа — разговор с режиссёром.' },
+  { key: 'intl-students', title: 'International Students Night', cat: 'social', sub: 'newcomers', emoji: '🌍', offset: 12, time: '19:00', duration: 180, price: 300, lang: 'en',
+    venue: 'Бар «Соль»', address: 'ул. Профсоюзная, 12', district: 'Вахитовский', organizer: 'KFU Buddy Club', with: ['solo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 80,
+    description: 'Вечер знакомств для иностранных и местных студентов на английском. Игры, музыка, обмен контактами.' },
+  { key: 'it-networking', title: 'Нетворкинг для тех, кто ищет работу в ИТ', cat: 'social', sub: 'networking', emoji: '🤝', offset: 14, time: '19:00', duration: 120, price: 0, lang: 'ru',
+    venue: 'ИТ-парк им. Башира Рамеева', address: 'ул. Спартаковская, 2', district: 'Вахитовский', organizer: 'Точка кипения Казань', with: ['solo'], solo: true,
+    registration: { type: 'here' }, capacity: 60,
+    description: 'HR и тимлиды резидентов ИТ-парка, формат «быстрые встречи» по 7 минут. Приносите резюме в телефоне.' },
+  { key: 'winter-fair', title: 'Открытие зимней ярмарки на Кремлёвской набережной', cat: 'sport', sub: 'skate', emoji: '🎡', offset: 16, time: '12:00', duration: 480, price: 0, lang: 'ru',
+    venue: 'Кремлёвская набережная', address: 'Кремлёвская набережная', district: 'Вахитовский', organizer: 'Дирекция парков Казани', with: ['duo', 'friends', 'kids', 'solo'], solo: true,
+    registration: { type: 'here' }, capacity: 2000,
+    description: 'Каток, ярмарка, глинтвейн и концерт вечером. Вход свободный, каток платно.' },
+  { key: 'mafia-night', title: 'Большая игра в мафию', cat: 'games', sub: 'mafia', emoji: '🕵️', offset: 4, time: '19:30', duration: 180, price: 500, lang: 'ru',
+    venue: 'Антикафе «Циферблат»', address: 'ул. Баумана, 7', district: 'Вахитовский', organizer: 'Мойчай', with: ['solo', 'friends'], solo: true,
+    registration: { type: 'here' }, capacity: 30,
+    description: 'Три стола по 10 человек, ведущие объясняют правила. Новичкам рады.' },
+];
+
+export function pad2(n) { return String(n).padStart(2, '0'); }
+export function isoDate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+export function hashInt(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h >>> 0);
+}
+
+export function makeEventRow(tpl, dateObj) {
+  const [hh, mm] = tpl.time.split(':').map(Number);
+  const start = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), hh, mm);
+  const slug = `${tpl.key}-${isoDate(start)}`;
+  const seed = hashInt(slug);
+  const base = Math.min(tpl.capacity - 1, Math.round(tpl.capacity * (0.2 + (seed % 55) / 100)));
+  const tags = [];
+  if (tpl.price === 0) tags.push('бесплатно');
+  if (tpl.solo) tags.push('можно одному');
+  if (tpl.lang === 'tt') tags.push('на татарском');
+  if (tpl.lang === 'en') tags.push('на английском');
+  if (tpl.pushkin) tags.push('Пушкинская карта');
+  return {
+    slug, series_key: tpl.key, title: tpl.title, category_key: tpl.cat, subcategory_key: tpl.sub, emoji: tpl.emoji,
+    start_at: start, duration_min: tpl.duration, price: tpl.price, lang: tpl.lang,
+    venue: tpl.venue, address: tpl.address, district: tpl.district, organizer: tpl.organizer,
+    with_whom: tpl.with, solo: !!tpl.solo, stol: !!tpl.stol,
+    registration_type: tpl.registration.type, registration_label: tpl.registration.label || null, registration_url: tpl.registration.url || null,
+    capacity: tpl.capacity, going_base: tpl.stol ? Math.min(5, 2 + (seed % 4)) : base,
+    tags, description: tpl.description,
+  };
+}
+
+export function generateSeries(fromDate, daysAhead = 60) {
+  const out = [];
+  const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  for (let i = 0; i < daysAhead; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    for (const s of SERIES) if (s.weekdays.includes(d.getDay())) out.push(makeEventRow(s, d));
+  }
+  return out;
+}
+
+export function generateOneOffs(fromDate) {
+  const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  return ONE_OFFS.map(o => { const d = new Date(start); d.setDate(start.getDate() + o.offset); return makeEventRow(o, d); });
+}

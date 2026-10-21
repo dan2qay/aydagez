@@ -1,0 +1,22 @@
+{
+  "name": "Айдагез — куда сходить в Казани",
+  "short_name": "Айдагез",
+  "lang": "ru",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1ea",
+  "theme_color": "#1b1b1b",
+  "icons": [
+    {
+      "src": "/brand/favicon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "aidaem",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--env-file-if-exists=site/.env",
+        "site/server/index.js"
+      ],
+      "port": 3000
+    }
+  ]
+}

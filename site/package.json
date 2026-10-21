@@ -1,0 +1,26 @@
+{
+  "name": "aydagez",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Айдагез — куда сходить в Казани. Подбор событий, PostgreSQL, Node.js.",
+  "scripts": {
+    "start": "node server/index.js",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "node --env-file-if-exists=.env server/index.js --reseed",
+    "dev": "node --env-file-if-exists=.env server/index.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "dompurify": "^3.4.17",
+    "express": "^5.3.0",
+    "leaflet": "^1.9.4",
+    "marked": "^15.0.12",
+    "pg": "^8.23.1",
+    "qrcode-generator": "^1.5.2"
+  }
+}

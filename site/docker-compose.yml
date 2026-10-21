@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: aidaem-pg
+    environment:
+      POSTGRES_USER: aidaem
+      POSTGRES_PASSWORD: aidaem
+      POSTGRES_DB: aidaem
+    ports:
+      - "5433:5432"
+    volumes:
+      - aidaem_pgdata:/var/lib/postgresql/data
+volumes:
+  aidaem_pgdata:

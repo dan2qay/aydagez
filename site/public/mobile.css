@@ -1,0 +1,132 @@
+/* Айдагез — мобильная версия: нижняя панель, поисковый лист, шторки фильтров, закреплённая запись */
+
+.only-mobile { display: none !important; }
+.tabbar { display: none; }
+.sheet { display: none; }
+
+/* Закреплённая полоса записи на странице события */
+.cta-bar { display: none; }
+
+@media (max-width: 900px) {
+  .only-mobile { display: grid !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  html, body { overflow-x: hidden; overscroll-behavior-x: none; }
+  .wrap { padding: 0 20px; }
+  input[type=search] { -webkit-appearance: none; appearance: none; }
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .nav-inner { height: 60px; gap: 8px; }
+  .logo-mark { width: 36px; height: 36px; border-radius: 10px; }
+  .logo-mark .glyph { width: 24px; height: 24px; }
+  .logo-text { font-size: 18px; }
+  .nav-actions { gap: 2px; }
+  .avatar { width: 36px; height: 36px; }
+
+  /* Нижняя панель навигации */
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-template-columns: repeat(4, 1fr);
+    height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(0,0,0,.06); }
+  .tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--muted); -webkit-tap-highlight-color: transparent; transition: color var(--t); }
+  .tab svg { transition: transform .2s var(--ease); }
+  .tab:active svg { transform: scale(.9); }
+  .tab.on { color: var(--fg); }
+  .tab.on svg { color: var(--brand); }
+  .tab-badge { position: absolute; top: 8px; left: calc(50% + 6px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--brand); color: #fff; font-size: 10px; display: grid; place-items: center; }
+
+  /* Полноэкранный поиск */
+  .sheet { display: block; position: fixed; inset: 0; z-index: 60; background: var(--bg); animation: sheetIn .22s var(--ease); overflow-y: auto; }
+  .sheet[hidden] { display: none; }
+  @keyframes sheetIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .sheet-head { position: sticky; top: 0; display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top)) 12px 10px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .sheet-search { flex: 1; display: flex; align-items: center; height: 48px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); padding: 0 6px 0 14px; }
+  .sheet-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; height: 100%; }
+  .sheet-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+  .sheet-body { padding: 16px; display: grid; gap: 10px; }
+  .sheet-label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); font-weight: 600; margin-top: 6px; }
+  .sheet-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sheet-filters .dd-btn { height: 44px; border-color: var(--line-strong); color: var(--fg); background: var(--surface); font-size: 14px; }
+  .sheet-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sheet-chips .chip { height: 40px; font-size: 14px; }
+  body.sheet-open { overflow: hidden; }
+
+  /* Выпадающие фильтры превращаются в нижние шторки */
+  .dd-menu { position: fixed; left: 12px; right: 12px; top: auto; bottom: calc(76px + env(safe-area-inset-bottom)); min-width: 0; padding: 10px; border-radius: 18px; box-shadow: var(--shadow-3); z-index: 70; animation: sheetIn .2s var(--ease); }
+  .sheet .dd-menu { bottom: 16px; }
+  .dd-item { padding: 12px; font-size: 15px; }
+  .feed-filters .dd-btn { height: 44px; }
+
+  /* Шаги и плитки: крупные цели для пальца */
+  .stage { padding-top: 16px; padding-bottom: 40px; }
+  .stepper { font-size: 12px; gap: 8px; margin-bottom: 16px; }
+  .stepper .sep { width: 16px; }
+  .q-title { font-size: 28px; }
+  .q-sub { font-size: 15px; }
+  .opts { margin-top: 16px; gap: 10px; }
+  .opt, .opt-ghost { min-height: 84px; padding: 14px; }
+  .opt-ico { width: 48px; height: 48px; font-size: 24px; }
+
+  /* Лента: быстрые кнопки в прокручиваемую строку, календарь и карта сверху по кнопке */
+  .feed-head { flex-direction: column; gap: 10px; }
+  .feed-quick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -20px 14px; padding: 2px 20px 6px; scroll-padding: 0 20px; scroll-snap-type: x proximity; }
+  .feed-quick::-webkit-scrollbar { display: none; }
+  .feed-quick .pill { flex: 0 0 auto; height: 40px; scroll-snap-align: start; }
+  .feed-quick .pill:not(.side-toggle) { display: none; } /* периоды — в ленте дней и листе «Даты» */
+  .feed-quick .feed-filters { display: flex; }
+  .feed-layout { display: flex; flex-direction: column; }
+  .feed-main, .feed-side { width: 100%; }
+  .feed-side { order: -1; margin-bottom: 16px; }
+  .feed-side .cal { max-width: none; }
+  .feed-side .cal-day { height: 40px; }
+  .side-map .map { height: 220px; }
+  .side-hint { display: none; }
+  .feed-title h2 { font-size: 20px; }
+  .picks .grid { grid-template-columns: 1fr; }
+  .fcard { grid-template-columns: minmax(0, 1fr) 80px; padding: 14px; gap: 12px; }
+  .fcard-cover { width: 80px; height: 80px; font-size: 34px; border-radius: 12px; }
+  .fcard-title { font-size: 16px; }
+  .fcard-place { white-space: normal; }
+  .timeline { padding-left: 18px; }
+  .tl-dot { left: -18px; }
+
+  /* Страница события */
+  .page { padding-top: 12px; }
+  .banner { height: 190px; border-radius: var(--r-l); margin-top: 10px; }
+  .banner .e { font-size: 72px; }
+  .event-head h1 { font-size: 24px; }
+  .two-col { gap: 20px; }
+  .register { position: static; box-shadow: none; }
+  .cta-bar { display: flex; position: fixed; left: 0; right: 0; bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 39; align-items: center; gap: 12px;
+    padding: 10px 16px; background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(0,0,0,.06); animation: sheetIn .25s var(--ease); }
+  .cta-info { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  .cta-info b { font-size: 16px; }
+  .cta-info small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cta-bar .btn { height: 44px; padding: 0 18px; flex: 0 0 auto; }
+  .org-actions .btn { flex: 1 1 auto; }
+
+  /* Формы без автозума на iOS и крупные контролы */
+  .field input, .field select, .field textarea, .register input, .digest input { font-size: 16px; }
+  .checks label { height: 44px; }
+  .modal { padding: 20px; border-radius: 18px; }
+
+  .footer { padding: 32px 0 24px; }
+  .footer-inner { grid-template-columns: minmax(0, 1fr); }
+  .digest { flex-wrap: wrap; }
+  .digest input { min-width: 0; flex: 1 1 160px; }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom)); max-width: calc(100% - 32px); text-align: center; }
+}
+
+@media (max-width: 380px) {
+  .logo-text small { display: none; }
+  .q-title { font-size: 26px; }
+}
+
+/* «Три варианта» на телефоне — горизонтальная лента небольших карточек */
+@media (max-width: 900px) {
+  .picks .grid, .picks .picks-grid { display: flex; grid-template-columns: none; overflow-x: auto; gap: 10px; margin: 0 -20px; padding: 2px 20px 8px; scroll-padding: 0 20px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .picks .grid::-webkit-scrollbar { display: none; }
+  .picks .card { flex: 0 0 68%; max-width: 280px; scroll-snap-align: start; }
+  .picks .cover { height: 84px; }
+  .picks .cover .e { font-size: 32px; }
+  .picks .card-title { font-size: 14px; }
+  .picks .card-place { font-size: 12px; }
+  .picks .card-foot .tags { display: none; }
+}

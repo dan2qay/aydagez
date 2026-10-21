@@ -180,7 +180,7 @@ export function matchScore(parsed, tags, e) {
   if (parsed.times.includes('evening')) { want += 0.5; if (tags.time === 'evening' || tags.time === 'night') got += 0.5; }
   if (parsed.times.includes('morning')) { want += 0.5; if (tags.time === 'morning') got += 0.5; }
   if (parsed.audience.includes('kids') && e && !(e.with || []).includes('kids')) got -= 1; // явно не для детей — штраф
-  if (parsed.audience.includes('solo') && e && e.with && !e.with.includes('solo')) return 0; // только компаниями — одному не подойдёт
+  if (!soft.audience && parsed.audience.includes('solo') && e && e.with && !e.with.includes('solo')) return 0; // только компаниями — одному не подойдёт
   const ts = tags.setting || [], tv = tags.vibe || [];
   if (!soft.setting && parsed.setting.includes('outdoor') && !ts.includes('outdoor') && !ts.includes('water')) return 0; // просили улицу — помещение не предлагаем
   if (!soft.setting && parsed.setting.includes('water') && !ts.includes('water')) return 0;
@@ -238,7 +238,7 @@ function askWeak(key, q) {
 }
 export async function parseQuerySmart(q) {
   const rules = parseQuery(q);
-  if (!llmEnabled()) return rules;
+  if (!llmEnabled() || !rules.rest.length) return rules; // только «сегодня»/«вечером»/«в центре» — модели нечего добавить, иначе она додумывает «D&D»
   const key = normalize(q);
   const hit = cached(key); if (hit) return hit;
   // Гонка: модель против таймера ожидания. Проиграла — отвечаем правилами, но результат модели всё равно дождёмся и закэшируем.
@@ -261,10 +261,13 @@ async function mergeLater(key, q, rules) {
       intensity: first.intensity || second.intensity, price: rules.price, // цена только из правил: «бесплатно» модели часто мерещится
       times: lead && p.times.length ? p.times : rules.times, weekdays: lead && p.weekdays.length ? p.weekdays : rules.weekdays, // время и день — явные слова, правила надёжнее
       rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
-      soft: lead ? {} : { activity: !rules.activity.length && p.activity.length > 0, vibe: !rules.vibe.length && p.vibe.length > 0, setting: !rules.setting.length && p.setting.length > 0 }, // догадки модели не отсекают события, а только поднимают подходящие
+      soft: lead ? {} : { activity: !rules.activity.length && p.activity.length > 0, vibe: !rules.vibe.length && p.vibe.length > 0, setting: !rules.setting.length && p.setting.length > 0, intensity: !rules.intensity && !!p.intensity, audience: !rules.audience.length && p.audience.length > 0 }, // догадки модели не отсекают события, а только поднимают подходящие
     };
     const usedModel = ['audience', 'vibe', 'setting', 'activity', 'times'].some(k => !rules[k].length && p[k].length) || (!rules.intensity && p.intensity) || p.rest.some(x => !rules.rest.includes(x));
-    const out = { ...merged, source: `llm:${models.weak()}${usedModel ? '' : ' (совпало с правилами)'}`, human: humanize(merged) };
+    // Подпись «ИИ понял»: уверенные признаки как есть, догадки модели — с пометкой «≈», слова модели в подпись не попадают
+    const sure = humanize({ ...merged, audience: merged.soft.audience ? [] : merged.audience, vibe: merged.soft.vibe ? [] : merged.vibe, setting: merged.soft.setting ? [] : merged.setting, activity: merged.soft.activity ? [] : merged.activity });
+    const human = [...sure, ...humanize(merged).filter(x => !sure.includes(x)).map(x => '≈ ' + x)];
+    const out = { ...merged, source: `llm:${models.weak()}${usedModel ? '' : ' (совпало с правилами)'}`, human };
     return remember(key, out);
   } catch (e) { return { ...rules, source: 'rules', error: e.message }; }
 }

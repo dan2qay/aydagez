@@ -181,7 +181,7 @@ app.get('/api/events', async (req, res, next) => {
     const parsed = useAi ? await parseQuerySmart(query) : null;
     // Жёсткие признаки — из правил; догадки модели (soft) только ранжируют, но не отсекают: «сегодня» не должно превращаться в «D&D сегодня»
     const sf = parsed?.soft || {};
-    const tagSignal = !!parsed && !!(parsed.audience.length || (!sf.vibe && parsed.vibe.length) || (!sf.setting && parsed.setting.length) || (!sf.activity && parsed.activity.length) || parsed.intensity || parsed.price || parsed.times.length);
+    const tagSignal = !!parsed && !!((!sf.audience && parsed.audience.length) || (!sf.vibe && parsed.vibe.length) || (!sf.setting && parsed.setting.length) || (!sf.activity && parsed.activity.length) || (!sf.intensity && parsed.intensity) || parsed.price || parsed.times.length);
     const hasSignal = tagSignal || (!!parsed && !!(parsed.weekdays.length || parsed.when || parsed.districts?.length || parsed.hour));
     if (parsed && hasSignal) {
       // Разбираем фразу в признаки, считаем совпадение с тегами события; остаток слов — подсказка, а не фильтр
@@ -195,7 +195,7 @@ app.get('/api/events', async (req, res, next) => {
       // Только «когда/где/во сколько» без признаков события — берём всю ленту и сужаем условиями (и словами, если они есть)
       const hardWords = parsed.restHard || parsed.rest; const hardHits = hardWords.length ? search(hardWords.join(' '), docs, vocab).hits : new Map();
       let found = tagSignal ? pool.filter(e => (aiScores.get(e.id) || 0) >= 0.6) : (hardWords.length ? pool.filter(e => hardHits.has(e.id)) : pool);
-      if (parsed.audience.includes('kids')) found = found.filter(e => e.with.includes('kids'));
+      if (!sf.audience && parsed.audience.includes('kids')) found = found.filter(e => e.with.includes('kids'));
       if (parsed.price === 'free') found = found.filter(e => e.price === 0);
       if (parsed.weekdays.length) found = found.filter(e => parsed.weekdays.includes(new Date(e.date + 'T12:00:00').getDay()));
       const dr = parsed.when ? dateRangeFor(parsed.when) : null;

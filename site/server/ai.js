@@ -143,7 +143,7 @@ export function parseQuery(q) {
   // Остаток — обычные слова для текстового поиска (без служебных)
   const stop = new Set(['хочу', 'хочется', 'хотим', 'хотелось', 'хотел', 'хотела', 'куда', 'сходить', 'сходим', 'пойти', 'пойдем', 'пойдём', 'где', 'то', 'что', 'нибудь', 'можно', 'бы', 'мне', 'нам', 'мы', 'я', 'с', 'в', 'на', 'и', 'или', 'как', 'для', 'это', 'чтобы', 'сегодня', 'завтра', 'послезавтра', 'вечером', 'утром', 'днем', 'днём', 'казань', 'казани', 'казане', 'город', 'городе', 'центр', 'центре', 'окраине', 'окраина', 'район', 'районе', 'недалеко', 'рядом', 'поблизости', 'давай', 'давайте', 'ищу', 'ищем', 'посоветуй', 'посоветуйте', 'подскажи', 'подскажите', 'какой', 'какие', 'какое', 'есть', 'ли', 'же', 'еще', 'ещё', 'чем', 'заняться', 'сделать', 'провести', 'время', 'мероприяти', 'событи']);
   const rest = tokenize(text).filter(w => !stop.has(w) && !/^\d{1,2}(:\d{2})?$/.test(w)).map(stem);
-  const parsed = { audience, vibe, setting, activity, intensity, price, times, weekdays, noise, hour, when, districts, outskirts, rest, source: 'rules' };
+  const parsed = { audience, vibe, setting, activity, intensity, price, times, weekdays, noise, hour, when, districts, outskirts, rest, restHard: rest, source: 'rules' };
   return { ...parsed, human: humanize(parsed) };
 }
 
@@ -260,7 +260,7 @@ async function mergeLater(key, q, rules) {
       audience: arr('audience'), vibe: arr('vibe'), setting: arr('setting'), activity: arr('activity'),
       intensity: first.intensity || second.intensity, price: rules.price, // цена только из правил: «бесплатно» модели часто мерещится
       times: lead && p.times.length ? p.times : rules.times, weekdays: lead && p.weekdays.length ? p.weekdays : rules.weekdays, // время и день — явные слова, правила надёжнее
-      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts,
+      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
       soft: lead ? {} : { activity: !rules.activity.length && p.activity.length > 0, vibe: !rules.vibe.length && p.vibe.length > 0, setting: !rules.setting.length && p.setting.length > 0 }, // догадки модели не отсекают события, а только поднимают подходящие
     };
     const usedModel = ['audience', 'vibe', 'setting', 'activity', 'times'].some(k => !rules[k].length && p[k].length) || (!rules.intensity && p.intensity) || p.rest.some(x => !rules.rest.includes(x));

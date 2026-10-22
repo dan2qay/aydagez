@@ -832,17 +832,27 @@
     H.feed.append(box);
   }
   // Лента как у Luma: вертикальная линия, точка у каждого дня, компактные карточки
-  function timeline(list) {
+  function timeline(list, pageCards = 40) {
     const wrap = el('div', { class: 'timeline' });
     const map = new Map();
     for (const e of list) { if (!map.has(e.date)) map.set(e.date, []); map.get(e.date).push(e); }
-    for (const [k, items] of map) {
-      const d = parseIso(k);
-      const rel = k === iso(today) ? 'Сегодня' : k === iso(addDays(today, 1)) ? 'Завтра' : cap(d.toLocaleDateString('ru-RU', { weekday: 'long' }));
-      wrap.append(el('section', { class: 'tl-day' },
-        el('div', { class: 'tl-head' }, el('span', { class: 'tl-dot' }), el('b', {}, fmtDM(d)), el('span', { class: 'tl-wd' }, rel)),
-        el('div', { class: 'tl-items' }, groupSlots(items).map(g => g.length > 1 ? slotCard(g) : fcard(g[0])))));
-    }
+    const days = [...map].map(([k, items]) => [k, groupSlots(items)]);
+    let i = 0;
+    const more = el('div', { class: 'tl-more' });
+    const renderChunk = () => { // порция дней: пока не наберётся ~pageCards карточек, дальше кнопка «Показать ещё»
+      let n = 0;
+      while (i < days.length && (n === 0 || n + days[i][1].length <= pageCards)) {
+        const [k, groupsOfDay] = days[i++]; n += groupsOfDay.length;
+        const d = parseIso(k);
+        const rel = k === iso(today) ? 'Сегодня' : k === iso(addDays(today, 1)) ? 'Завтра' : cap(d.toLocaleDateString('ru-RU', { weekday: 'long' }));
+        more.before(el('section', { class: 'tl-day' },
+          el('div', { class: 'tl-head' }, el('span', { class: 'tl-dot' }), el('b', {}, fmtDM(d)), el('span', { class: 'tl-wd' }, rel)),
+          el('div', { class: 'tl-items' }, groupsOfDay.map(g => g.length > 1 ? slotCard(g) : fcard(g[0])))));
+      }
+      more.innerHTML = '';
+      if (i < days.length) { const left = days.slice(i).reduce((a, [, g]) => a + g.length, 0); more.append(el('button', { type: 'button', class: 'btn btn-outline', onclick: renderChunk }, `Показать ещё · ${left} ${plural(left, ['карточка', 'карточки', 'карточек'])} в ${days.length - i} ${plural(days.length - i, ['дне', 'днях', 'днях'])}`)); }
+    };
+    wrap.append(more); renderChunk();
     return wrap;
   }
   const SLOTTED = new Set(['sessions', 'rental', 'groups']);

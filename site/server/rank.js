@@ -37,6 +37,21 @@ export function scoreEvent(e, ctx = {}) {
   return { score, reasons };
 }
 
+// Разнообразие: внутри дня чередуем виды занятий (для «хочу позаниматься спортом» — бег, волейбол, йога, а не пять пробежек подряд)
+export function diversifyByDay(list, keyOf) {
+  const out = [];
+  let i = 0;
+  while (i < list.length) {
+    const date = list[i].date; const day = [];
+    while (i < list.length && list[i].date === date) day.push(list[i++]);
+    const buckets = new Map();
+    for (const e of day) { const k = keyOf(e); if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push(e); }
+    const qs = [...buckets.values()];
+    while (qs.some(q => q.length)) for (const q of qs) if (q.length) out.push(q.shift());
+  }
+  return out;
+}
+
 // Сортировка внутри дня: реклама и релевантные выше, далее по баллу, затем по времени
 export function rankList(list, ctx) {
   return list.map(e => { const { score, reasons } = scoreEvent(e, ctx); return { ...e, rank: score, reasons }; })

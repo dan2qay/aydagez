@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { q, migrate, ensureSeed, ensureOrganizer, insertEvent, slugify, DATABASE_URL } from './db.js';
 import { search, buildDoc, buildVocab, buildIdf, tokenize, stem, normalize } from './search.js';
-import { rankList, isPromoted } from './rank.js';
+import { diversifyByDay, rankList, isPromoted } from './rank.js';
 import { ORG_KINDS, PROMO_PRODUCTS, DEMO_BALANCE } from './orgkinds.js';
 import { ACTIVITIES, ACT_GROUPS, detectActs, buildFacets } from './facets.js';
 import { DISTRICTS } from './districts.js';
@@ -174,7 +174,7 @@ app.get('/api/events', async (req, res, next) => {
     let pool = events;
     let corrected = null;
     let scores = null;
-    let aiInfo = null, aiScores = null;
+    let aiInfo = null, aiScores = null, fallbackAi = false;
     // ИИ-режим: ai=1 — всегда, ai=0 — никогда, иначе (auto) сам включается для фраз («хочу…», «куда…», 4+ слов).
     const aiParam = String(ai ?? 'auto');
     const useAi = !!query.trim() && aiParam !== '0' && (aiParam === '1' || looksLikePhrase(query));
@@ -203,7 +203,7 @@ app.get('/api/events', async (req, res, next) => {
       if (parsed.districts?.length) found = found.filter(e => parsed.districts.includes(e.district));
       if (parsed.hour) { const mm = e => { const d = new Date(e.start); return d.getHours() * 60 + d.getMinutes(); }; found = found.filter(e => (mm(e) >= parsed.hour.from && mm(e) <= parsed.hour.to) || (e.kind === 'open' && String(e.meta?.open_from || '00:00') <= `${String(Math.floor(parsed.hour.to / 60)).padStart(2, '0')}:00` && String(e.meta?.open_to || '23:59') >= `${String(Math.floor(parsed.hour.from / 60)).padStart(2, '0')}:00`)); }
       let fallback = false;
-      if (!found.length) { // по смыслу пусто — показываем по словам, чтобы лента не была пустой
+      if (!found.length) { fallbackAi = true; // по смыслу пусто — показываем по словам, чтобы лента не была пустой
         const r = search(query, docs, vocab); scores = r.hits; corrected = r.corrected; aiScores = null; fallback = true;
         found = pool.filter(e => scores.has(e.id));
         if (dr) found = found.filter(e => e.date >= dr.from && e.date <= dr.to); // даты и район из фразы — жёсткие даже при откате на слова
@@ -245,6 +245,7 @@ app.get('/api/events', async (req, res, next) => {
     const sig = await getSignals();
     const interests = (await q(`SELECT interests FROM clients WHERE id=$1`, [req.clientId])).rows[0]?.interests || [];
     list = sort === 'time' ? list : rankList(list, { now: new Date(), hits: scores, tokens, aiScores, clicks: sig.clicks.get(normalize(query)) || null, popularity: sig.popularity, interests });
+    if (sort !== 'time' && parsed && !fallbackAi && (parsed.activity.includes('sport') || (!parsed.activity.length && !parsed.restHard?.length))) list = diversifyByDay(list, e => (e.acts || [])[0] || e.sub); // общий запрос («спортом», «с семьёй») — разные виды рядом
     if (query.trim()) q(`INSERT INTO search_log(client_id, session_id, query, corrected, results, mode, filters) VALUES($1,$2,$3,$4,$5,$6,$7)`,
       [req.clientId, req.sessionId || null, query.slice(0, 200), corrected, list.length, aiInfo ? 'ai' : 'text', JSON.stringify({ cat, sub, mood, with: withWhom, budget, from, to })]).catch(() => {});
     res.json({ events: list, days, corrected, facets, ungroup: tod.length > 0 || !!(aiInfo && aiInfo.ungroup), total: pool.length, range: { from: from || null, to: to || null }, ai: aiInfo });

@@ -6,10 +6,12 @@
 import { normalize, tokenize, stem } from './search.js';
 import { llmEnabled, chatJson, cached, remember, models } from './llm.js';
 import { DISTRICTS, OUTSKIRTS_TERMS } from './districts.js';
+import { nearestScenarios, scenarioAnswer, SCENARIOS } from './scenarios.js';
 
 // Словарь признаков. Каждый признак: ключ → список стемов-маркеров.
 const AUDIENCE = {
-  kids: ['ребенок', 'ребен', 'дет', 'детьми', 'детск', 'сын', 'дочь', 'дочк', 'семей', 'семь', 'малыш', 'школьник', 'подрост'],
+  kids: ['ребенок', 'ребен', 'дети', 'детей', 'детьми', 'детям', 'детк', 'детск', 'сын', 'дочь', 'дочк', 'малыш', 'школьник', 'подрост'],
+  family: ['родствен', 'родител', 'родным', 'родных', 'семьей', 'семьёй', 'семье', 'семья', 'семей', 'мамой', 'маму', 'мама', 'папой', 'папу', 'папа', 'бабушк', 'дедушк', 'сестр', 'брат', 'племян', 'тетей', 'тётей', 'тетю', 'тётю', 'дяд', 'внук'],
   solo: ['один', 'одна', 'одному', 'одной', 'сам', 'соло', 'незнаком', 'познаком', 'новые люди', 'компани'],
   couple: ['вдвоем', 'вдвоём', 'девушк', 'парн', 'свидан', 'романтич', 'пара', 'жена', 'муж'],
   friends: ['друз', 'подруж', 'подруг', 'компани', 'коллег', 'команд', 'корпоратив'],
@@ -17,10 +19,10 @@ const AUDIENCE = {
   newcomer: ['переех', 'новичк', 'недавно', 'новый в городе'],
 };
 const VIBE = {
-  calm: ['спокойн', 'тих', 'расслаб', 'отдохн', 'неспешн', 'уютн', 'медленн', 'лениво', 'чил'],
+  calm: ['спокойн', 'тих', 'расслаб', 'отдохн', 'неспешн', 'уютн', 'медленн', 'лениво', 'чил', 'посидеть', 'посидим', 'поболтать', 'пообщаться', 'душевн', 'без суеты'],
   active: ['активн', 'подвиж', 'спорт', 'энергичн', 'адреналин', 'экстрим', 'размят', 'потеть', 'подвигаться'],
-  party: ['вечеринк', 'тусов', 'танц', 'клуб', 'пати', 'диджей', 'ночь', 'ночн', 'повесел', 'весел', 'развлеч', 'оторв', 'потус', 'зажечь', 'драйв'],
-  smart: ['узнать', 'лекци', 'умн', 'интеллект', 'книг', 'науч', 'обсуд', 'поучить'],
+  party: ['вечеринк', 'тусов', 'танц', 'пати', 'диджей', 'ночной клуб', 'клубн', 'ночь', 'ночн', 'повесел', 'весел', 'развлеч', 'оторв', 'потус', 'зажечь', 'драйв'],
+  smart: ['узнать', 'лекци', 'поумнеть', 'для ума', 'интеллект', 'познавательн', 'книг', 'науч', 'обсуд', 'поучить'],
   romantic: ['романтич', 'свидан', 'красив', 'атмосфер'],
   creative: ['творч', 'рисов', 'лепить', 'мастер', 'своими руками', 'хобби'],
 };
@@ -28,11 +30,11 @@ const SETTING = {
   outdoor: ['гулять', 'прогул', 'улиц', 'парк', 'на свежем', 'воздух', 'природ', 'набережн', 'лес', 'озер', 'река', 'на улице', 'под открытым'],
   indoor: ['в помещении', 'тепл', 'дожд', 'в зале', 'внутри', 'крыш'],
   water: ['вода', 'воде', 'сап', 'вейк', 'лодк', 'плав', 'бассейн', 'река', 'озер'],
-  food: ['поесть', 'ужин', 'еда', 'кафе', 'ресторан', 'кофе', 'чай', 'бар'],
+  food: ['поесть', 'покушать', 'перекусить', 'ужин', 'еды', 'едой', 'кафе', 'ресторан', 'кофе', 'чай', 'бар', 'посидеть', 'посидим', 'столик'],
 };
-const NOISE = { loud: ['шумн', 'громк', 'танцпол', 'диджей', 'потусить', 'оторваться', 'живая музыка', 'концерт', 'караоке', 'вечеринк', 'клуб', 'бар'], quiet: ['тих', 'спокойн', 'без шума', 'уютн', 'медитац', 'библиотек', 'читальн', 'камерн', 'неспешн', 'поговорить'] };
+const NOISE = { loud: ['шумн', 'громк', 'танцпол', 'диджей', 'потусить', 'оторваться', 'живая музыка', 'концерт', 'караоке', 'вечеринк', 'ночной клуб', 'клубн', 'в баре', 'бар «'], quiet: ['тих', 'тишин', 'спокойн', 'без шума', 'уютн', 'медитац', 'библиотек', 'читальн', 'камерн', 'неспешн', 'поговорить'] };
 const NOISE_SUB = { loud: ['party', 'concert', 'karaoke', 'quiz', 'mafia', 'standup', 'market', 'team', 'climb'], quiet: ['yoga', 'book', 'lecture', 'exhibition', 'chess', 'walk', 'it', 'workshop', 'lang', 'cinema', 'theatre', 'classical', 'tour', 'run'] };
-const INTENSITY = { low: ['спокойн', 'тих', 'неспешн', 'легк', 'без нагрузки', 'расслаб', 'погулять'], high: ['интенсив', 'тренировк', 'бег', 'пробежк', 'нагрузк', 'спорт', 'экстрим', 'потеть'] };
+const INTENSITY = { low: ['спокойн', 'тих', 'неспешн', 'легк', 'без нагрузки', 'расслаб', 'погулять', 'посидеть'], high: ['интенсив', 'тренировк', 'бег', 'пробежк', 'нагрузк', 'спорт', 'экстрим', 'потеть'] };
 const PRICE = { free: ['бесплатн', 'даром', 'без денег', 'недорог', 'дешев', 'бюджетн'], paid: ['дорог', 'премиум', 'vip'] };
 const TIME = { morning: ['утр', 'рано'], day: ['днем', 'днём', 'обед', 'после обеда'], evening: ['вечер', 'после работы', 'после пар'], night: ['ночь', 'ночн', 'до утра'], weekend: ['выходн', 'суббот', 'воскрес', 'уикенд'] };
 const WEEKDAY = { 1: ['понедельник'], 2: ['вторник'], 3: ['в среду', 'среда', 'по средам'], 4: ['четверг'], 5: ['пятниц'], 6: ['суббот'], 0: ['воскрес'] };
@@ -41,14 +43,15 @@ const WEEKDAY_HUMAN = ['в воскресенье', 'в понедельник',
 const INTENT = new Set(['хочу', 'хотим', 'хочется', 'хотелось', 'куда', 'где', 'сходить', 'пойти', 'пойдем', 'пойдём', 'сходим', 'заняться', 'чем', 'ищу', 'ищем', 'посоветуй', 'посоветуйте', 'подскажи', 'подскажите', 'нибудь', 'можно']);
 export function looksLikePhrase(q) { const w = tokenize(normalize(q || '')); const n = normalize(q || ''); return w.length >= 3 || w.some(x => INTENT.has(x)) || /(^|\s)(в|к|после|до|около|с)\s+\d{1,2}(:\d{2})?(\s|$)/.test(n) || /(утром|днем|вечером|ночью|сегодня|завтра|послезавтра|выходн|уикенд|неделе|центр|окраин|бесплатн)/.test(n); }
 const ACTIVITY = {
+  sport: ['спорт', 'физкультур', 'размять', 'подвигать', 'тренировк', 'фитнес', 'физическ', 'потренир'],
   walk: ['гулять', 'прогул', 'погулять', 'пройтись', 'побродить'], run: ['бег', 'пробежк', 'побегать'], yoga: ['йог', 'растяж', 'медитац'], skate: ['катк', 'коньк', 'лед', 'лёд'],
   bike: ['велосипед', 'велик', 'самокат', 'велопрогул'], water: ['сап', 'вейк', 'лодк', 'катамаран'], climb: ['скалодром', 'лазать', 'боулдеринг'], team: ['футбол', 'волейбол', 'баскетбол', 'игры с мячом', 'с мячом', 'командн', 'бадминтон', 'теннис'],
   football: ['футбол', 'футзал'], volleyball: ['волейбол'], basketball: ['баскетбол'], badminton: ['бадминтон'], pingpong: ['настольный теннис', 'пинг-понг', 'теннис'], roller: ['ролик', 'роллердром'], sup: ['сап ', 'сапы', 'сапах', 'sup'], wake: ['вейк'], nordic: ['скандинавск'], swim: ['плаван', 'бассейн', 'поплавать'], dnd: ['d&d', 'днд', 'ролев'], salsa: ['сальс', 'бачат', 'латино'],
   quiz: ['квиз', 'викторин', 'интеллектуальн'], board: ['настолк', 'настольные игр', 'настольных игр', 'игротек'], chess: ['шахмат'], mafia: ['мафи'],
   cinema: ['кино', 'фильм', 'кинотеатр'], theatre: ['театр', 'спектакл'], standup: ['стендап', 'комик', 'посмеяться', 'юмор'], exhibition: ['выставк', 'музей', 'галере', 'картин'], tour: ['экскурс', 'истори', 'город'],
   concert: ['концерт', 'живая музыка', 'музык', 'группа'], jazz: ['джаз'], party: ['вечеринк', 'танц', 'диджей'], classical: ['классик', 'оркестр', 'филармон'], market: ['маркет', 'ярмарк', 'винил'], karaoke: ['караоке', 'попеть', 'спеть', 'петь', 'песн', 'вокал'],
-  lecture: ['лекци', 'узнать'], it: ['айти', 'it', 'программ', 'митап'], book: ['книг', 'чтен'], workshop: ['мастер', 'керамик', 'рисован', 'своими руками'],
-  stol: ['ужин', 'стол на', 'за столом', 'незнаком'], lang: ['английск', 'татарск', 'язык', 'разговорн'], dating: ['свидан', 'знакомств', 'познаком', 'девушк', 'парн', 'половинк', 'одинок', 'отношен'], networking: ['нетворк', 'деловые знакомства', 'бизнес-завтрак'], newcomers: ['новичк', 'переех'],
+  lecture: ['лекци', 'узнать'], it: ['айтишн', 'айти-', 'в айти', 'it-', 'программист', 'разработч', 'митап'], book: ['книг', 'чтен'], workshop: ['мастер', 'керамик', 'рисован', 'своими руками'],
+  stol: ['ужин', 'стол на', 'за столом', 'незнаком'], lang: ['английск', 'татарск', 'язык', 'разговорн'], dating: ['знакомств', 'познаком', 'девушк', 'парн', 'половинк', 'одинок', 'отношен'], networking: ['нетворк', 'деловые знакомства', 'бизнес-завтрак'], newcomers: ['новичк', 'переех'],
 };
 // Подкатегория события → её «врождённые» признаки (для событий без ИИ-тегов и для сида).
 const SUB_PROFILE = {
@@ -87,7 +90,13 @@ const hasAny = (text, markers) => markers.some(m => text.includes(m));
 const pick = (text, dict) => Object.entries(dict).filter(([, markers]) => hasAny(text, markers)).map(([k]) => k);
 
 // «Сильная модель» для события: пока правила по подкатегории и тексту. Возвращает единую схему тегов.
-export const TAG_VERSION = 9;
+export const TAG_VERSION = 11;
+// Спортивные занятия: у события с любым из них есть и общий «sport»; в запросе конкретный вид вытесняет общий
+export const SPORT_ACTS = ['run', 'yoga', 'skate', 'bike', 'water', 'climb', 'team', 'football', 'volleyball', 'basketball', 'badminton', 'pingpong', 'roller', 'sup', 'wake', 'nordic', 'swim'];
+// Занятия, которые гость называет точно: если названо — показываем только его (волейбол ≠ теннис, кино ≠ театр)
+const STRICT_ACTS = new Set([...SPORT_ACTS.filter(a => !['water', 'team'].includes(a)), 'dnd', 'salsa', 'quiz', 'board', 'chess', 'mafia', 'cinema', 'theatre', 'standup', 'exhibition', 'concert', 'jazz', 'classical', 'karaoke', 'lecture', 'book', 'lang', 'stol', 'networking']);
+// Подкатегории, куда спокойно идут всей семьёй (для тега family)
+const FAMILY_SUBS = new Set(['walk', 'skate', 'board', 'chess', 'stol', 'concert', 'jazz', 'classical', 'market', 'lecture', 'book', 'workshop', 'theatre', 'cinema', 'exhibition', 'tour', 'yoga']);
 const HOUR_FMT = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', hour: 'numeric', hourCycle: 'h23' });
 export function mskHour(d) { const n = Number(HOUR_FMT.format(d)); return Number.isNaN(n) ? d.getHours() : n % 24; }
 export function tagEvent(e) {
@@ -104,9 +113,13 @@ export function tagEvent(e) {
   const head = normalize([e.title, (e.keywords || []).join(' '), e.subTitle].join(' '));
   const activity = new Set(base.activity); pick(head, ACTIVITY).forEach(v => activity.add(v));
   if (['football', 'volleyball', 'basketball', 'badminton', 'pingpong'].some(k => activity.has(k))) activity.add('team');
+  if (e.category === 'sport' || SPORT_ACTS.some(k => activity.has(k))) activity.add('sport');
+  const loudish = hasAny(text, NOISE.loud) || NOISE_SUB.loud.includes(e.sub);
+  if (audience.has('kids') || (FAMILY_SUBS.has(e.sub) && !loudish) || (e.kind === 'open' && !loudish) || hasAny(text, AUDIENCE.family)) audience.add('family');
   const h = e.start ? mskHour(new Date(e.start)) : 19; // час по Казани независимо от TZ процесса
   const time = h >= 22 || h < 6 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'day' : 'evening';
-  const noiseText = hasAny(text, NOISE.loud) ? 'loud' : hasAny(text, NOISE.quiet) ? 'quiet' : null;
+  const loudT = hasAny(text, NOISE.loud), quietT = hasAny(text, NOISE.quiet);
+  const noiseText = loudT && quietT ? null : loudT ? 'loud' : quietT ? 'quiet' : null; // «книжный клуб в библиотеке»: спорно — решает подкатегория
   const noise = noiseText || (NOISE_SUB.loud.includes(e.sub) ? 'loud' : NOISE_SUB.quiet.includes(e.sub) ? 'quiet' : 'mid');
   const d = e.date ? new Date(e.date + 'T00:00:00').getDay() : 0;
   return {
@@ -125,7 +138,7 @@ export function parseQuery(q) {
   const price = hasAny(text, PRICE.free) ? 'free' : hasAny(text, PRICE.paid) ? 'high' : null;
   const times = pick(text, TIME);
   const weekdays = Object.entries(WEEKDAY).filter(([, m]) => hasAny(text, m)).map(([d]) => Number(d));
-  const noise = hasAny(text, ['шумн', 'громк', 'потусить', 'оторваться', 'танцпол']) ? 'loud' : hasAny(text, ['тих', 'без шума', 'спокойн', 'поговорить']) ? 'quiet' : null;
+  const noise = hasAny(text, ['шумн', 'громк', 'потусить', 'оторваться', 'танцпол']) ? 'loud' : hasAny(text, ['тих', 'тишин', 'без шума', 'спокойн', 'поговорить']) ? 'quiet' : null;
   // Когда: «сегодня», «завтра», «послезавтра», «на выходных», «на этой неделе»
   const when = /послезавтра/.test(text) ? 'dayafter' : /сегодня|сейчас|вечером сегодня/.test(text) ? 'today' : /завтра/.test(text) ? 'tomorrow' : /на неделе|на этой неделе|до конца недели/.test(text) ? 'week' : hasAny(text, ['выходн', 'уикенд']) ? 'weekend' : null;
   // Где: район по названию или ориентиру, «в центре», «на окраине»
@@ -139,6 +152,10 @@ export function parseQuery(q) {
   if (rng && Number(rng[1]) <= 23 && Number(rng[3]) <= 23) hour = { from: mins(rng[1], rng[2]), to: mins(rng[3], rng[4]) };
   else if (one && Number(one[2]) <= 23) { const t = mins(one[2], one[3]); const w = one[1]; hour = w === 'после' ? { from: t, to: 23 * 60 + 59 } : w === 'до' ? { from: 0, to: t } : { from: Math.max(0, t - 60), to: t + 90 }; }
   for (const k of ['team']) { if (activity.includes(k) && ['football', 'volleyball', 'basketball', 'badminton', 'pingpong'].some(x => activity.includes(x))) activity.splice(activity.indexOf(k), 1); } // назван конкретный вид — общий «игры с мячом» не нужен
+  if (activity.includes('sport') && SPORT_ACTS.some(x => activity.includes(x))) activity.splice(activity.indexOf('sport'), 1); // «спорт» + «волейбол» = волейбол
+  if (activity.includes('water') && ['sup', 'wake', 'swim'].some(x => activity.includes(x))) activity.splice(activity.indexOf('water'), 1); // «сапы» — это сапы, а не любой водный спорт
+  if (activity.includes('sport') && !vibe.includes('active')) vibe.push('active');
+  if (audience.includes('family') && audience.includes('kids') && !hasAny(text, AUDIENCE.kids)) audience.splice(audience.indexOf('kids'), 1);
   if (activity.includes('dating')) { const i = audience.indexOf('couple'); if (i >= 0) audience.splice(i, 1); if (!audience.includes('solo')) audience.push('solo'); } // «познакомиться с девушкой» — это знакомства, а не поход вдвоём
   // Остаток — обычные слова для текстового поиска (без служебных)
   const stop = new Set(['хочу', 'хочется', 'хотим', 'хотелось', 'хотел', 'хотела', 'куда', 'сходить', 'сходим', 'пойти', 'пойдем', 'пойдём', 'где', 'то', 'что', 'нибудь', 'можно', 'бы', 'мне', 'нам', 'мы', 'я', 'с', 'в', 'на', 'и', 'или', 'как', 'для', 'это', 'чтобы', 'сегодня', 'завтра', 'послезавтра', 'вечером', 'утром', 'днем', 'днём', 'казань', 'казани', 'казане', 'город', 'городе', 'центр', 'центре', 'окраине', 'окраина', 'район', 'районе', 'недалеко', 'рядом', 'поблизости', 'давай', 'давайте', 'ищу', 'ищем', 'посоветуй', 'посоветуйте', 'подскажи', 'подскажите', 'какой', 'какие', 'какое', 'есть', 'ли', 'же', 'еще', 'ещё', 'чем', 'заняться', 'сделать', 'провести', 'время', 'мероприяти', 'событи']);
@@ -151,7 +168,7 @@ export function parseQuery(q) {
 export function humanize(p) {
   const { audience = [], vibe = [], setting = [], activity = [], price = null, times = [], weekdays = [] } = p;
   const human = [];
-  if (audience.includes('kids')) human.push('с детьми'); if (audience.includes('solo')) human.push('одному'); if (audience.includes('couple')) human.push('вдвоём'); if (audience.includes('friends')) human.push('с друзьями');
+  if (audience.includes('kids')) human.push('с детьми'); if (audience.includes('solo')) human.push('одному'); if (audience.includes('couple')) human.push('вдвоём'); if (audience.includes('friends')) human.push('с друзьями'); if (audience.includes('family')) human.push('с семьёй'); if (audience.includes('tourist')) human.push('гостям города'); if (audience.includes('newcomer')) human.push('новичкам');
   if (setting.includes('outdoor')) human.push('на улице'); if (setting.includes('water')) human.push('у воды'); if (setting.includes('food')) human.push('с едой');
   if (vibe.includes('calm')) human.push('спокойно'); if (vibe.includes('active')) human.push('активно'); if (vibe.includes('party')) human.push('вечеринка'); if (vibe.includes('smart')) human.push('познавательно'); if (vibe.includes('romantic')) human.push('романтично'); if (vibe.includes('creative')) human.push('творчество');
   weekdays.forEach(d => human.push(WEEKDAY_HUMAN[d]));
@@ -160,7 +177,7 @@ export function humanize(p) {
   if (p.outskirts) human.push('не в центре'); else if (p.districts?.length) human.push(...p.districts.map(k => { const d = DISTRICTS.find(x => x.key === k); return d?.center ? 'в центре' : (d?.label || k); }));
   if (p.hour) { const f = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; human.push(p.hour.from === 0 ? `до ${f(p.hour.to)}` : p.hour.to >= 23 * 60 + 59 ? `после ${f(p.hour.from)}` : `${f(p.hour.from)}–${f(Math.min(p.hour.to, 23 * 60 + 59))}`); }
   if (price === 'free') human.push('бесплатно'); if (times.includes('weekend') && p.when !== 'weekend') human.push('выходные'); if (times.includes('evening')) human.push('вечером'); if (times.includes('morning')) human.push('утром'); if (times.includes('day')) human.push('днём'); if (times.includes('night')) human.push('ночью');
-  activity.forEach(a => human.push({ walk: 'прогулка', run: 'бег', yoga: 'йога', skate: 'каток', bike: 'велосипед', water: 'на воде', football: 'футбол', volleyball: 'волейбол', basketball: 'баскетбол', badminton: 'бадминтон', pingpong: 'настольный теннис', roller: 'ролики', sup: 'сапы', wake: 'вейк', nordic: 'скандинавская ходьба', swim: 'плавание', dnd: 'D&D', salsa: 'сальса', team: 'игры с мячом', climb: 'скалодром', cinema: 'кино', theatre: 'театр', standup: 'стендап', quiz: 'квиз', board: 'настолки', chess: 'шахматы', concert: 'концерт', jazz: 'джаз', lecture: 'лекция', book: 'книги', workshop: 'мастер-класс', exhibition: 'выставка', tour: 'экскурсия', karaoke: 'попеть', stol: 'ужин с незнакомцами', lang: 'языковой клуб', dating: 'знакомства', it: 'ИТ-встречи', classical: 'классика', market: 'маркет', party: 'вечеринка', climb: 'скалодром', team: 'командный спорт', mafia: 'мафия', networking: 'нетворкинг', newcomers: 'новички' }[a] || a));
+  activity.forEach(a => human.push({ sport: 'спорт (разный)', walk: 'прогулка', run: 'бег', yoga: 'йога', skate: 'каток', bike: 'велосипед', water: 'на воде', football: 'футбол', volleyball: 'волейбол', basketball: 'баскетбол', badminton: 'бадминтон', pingpong: 'настольный теннис', roller: 'ролики', sup: 'сапы', wake: 'вейк', nordic: 'скандинавская ходьба', swim: 'плавание', dnd: 'D&D', salsa: 'сальса', team: 'игры с мячом', climb: 'скалодром', cinema: 'кино', theatre: 'театр', standup: 'стендап', quiz: 'квиз', board: 'настолки', chess: 'шахматы', concert: 'концерт', jazz: 'джаз', lecture: 'лекция', book: 'книги', workshop: 'мастер-класс', exhibition: 'выставка', tour: 'экскурсия', karaoke: 'попеть', stol: 'ужин с незнакомцами', lang: 'языковой клуб', dating: 'знакомства', it: 'ИТ-встречи', classical: 'классика', market: 'маркет', party: 'вечеринка', climb: 'скалодром', team: 'командный спорт', mafia: 'мафия', networking: 'нетворкинг', newcomers: 'новички' }[a] || a));
   return [...new Set(human)];
 }
 
@@ -196,6 +213,7 @@ export function matchScore(parsed, tags, e) {
     const actHit = parsed.activity.some(x => (tags.activity || []).includes(x));
     const setHit = parsed.setting.length && parsed.setting.some(x => (tags.setting || []).includes(x));
     if (!actHit && !setHit) return 0; // ни активность, ни обстановка не совпали — это не то
+    if (!actHit && parsed.activity.some(a => STRICT_ACTS.has(a))) return 0; // назван конкретный вид (волейбол, кино) — обстановка его не заменяет
   }
   return want ? Math.max(0, Math.min(1, got / want)) : 0;
 }
@@ -228,10 +246,16 @@ const hasAnySignal = p => !!(p.audience.length || p.vibe.length || p.setting.len
 // Слабая модель: разбор фразы гостя. Кэш по нормализованной фразе; при ошибке/таймауте — правила.
 const WAIT_MS = Number(process.env.LLM_WAIT_MS || 2500); // сколько гость ждёт модель; дальше — правила, а модель дорабатывает в фоне
 const inflight = new Map();
+export const SYSTEM_WEAK = `Разбери запрос гостя (куда сходить в Казани) в признаки для поиска. Отвечай только JSON.\n${SCHEMA_SHORT}\nПравила: родственники, родители, семья → audience family и спокойный vibe calm; «посидеть» → calm и setting food; конкретный вид спорта (волейбол, футбол, теннис) → только он; «заняться спортом» без вида → activity sport; не выдумывай день недели, цену и время, если их нет в запросе.`;
+for (const s of SCENARIOS) s._stems = tokenize(normalize(s.q)).map(stem);
+function examplesFor(q) {
+  const stems = tokenize(normalize(q)).map(stem);
+  return nearestScenarios(stems, 4).map(s => `«${s.q}» → ${JSON.stringify(scenarioAnswer(s))}`).join('\n');
+}
 function askWeak(key, q) {
   if (inflight.has(key)) return inflight.get(key);
   const pr = chatJson({ model: models.weak(), maxTokens: 220,
-    system: `Разбери запрос гостя (куда сходить в Казани) в признаки для поиска. Отвечай только JSON.\n${SCHEMA_SHORT}\nПример: «хотим с подружками попеть песни» → {"audience":["friends"],"vibe":["party"],"setting":[],"activity":["karaoke"],"intensity":null,"price":null,"times":[],"weekdays":[],"keywords":["караоке"]}`,
+    system: `${SYSTEM_WEAK}\nПримеры:\n${examplesFor(q)}`,
     user: q.slice(0, 300) }).finally(() => inflight.delete(key));
   inflight.set(key, pr);
   return pr;

@@ -9,7 +9,10 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:reset": "node --env-file-if-exists=.env server/index.js --reseed",
-    "dev": "node --env-file-if-exists=.env server/index.js"
+    "dev": "node --env-file-if-exists=.env server/index.js",
+    "ai:test": "node --env-file-if-exists=.env scripts/ai_scenarios.mjs",
+    "ai:test:full": "node --env-file-if-exists=.env scripts/ai_scenarios.mjs --model --api",
+    "ai:dataset": "node scripts/ai_scenarios.mjs --dataset"
   },
   "engines": {
     "node": ">=22"

@@ -449,24 +449,32 @@
         el('span', { class: 'opt-body' }, el('b', {}, m.title), el('small', {}, m.desc)),
         el('span', { class: 'opt-n', 'data-count': `mood:${m.key}` }, facets ? cnt(facets.mood[m.key]) : '')))));
   }
-  // Месячный календарь: тап — день, зажать и провести — период. Возвращает элемент и запоминает его в H.cal
-  function calendar(onPick, onRange) {
-    const first = new Date(S.calY, S.calM, 1);
-    const [ra, rb] = S.when !== 'any' ? range() : [null, null];
+  // Единый месячный календарь для всего сайта. В ленте: счётчики событий, тап — день, зажать и провести — период.
+  // В формах (opts.pick): выбор одной даты, без счётчиков, с границами min/max; тот же вид, те же жесты.
+  function calendar(onPick, onRange, opts = {}) {
+    const pick = !!opts.pick;
+    const selK = pick ? (opts.sel || null) : null;
+    const baseD = pick ? (selK ? parseIso(selK) : today) : null;
+    const viewY = opts.y ?? (pick ? baseD.getFullYear() : S.calY), viewM = opts.m ?? (pick ? baseD.getMonth() : S.calM);
+    const first = new Date(viewY, viewM, 1);
+    const [ra, rb] = pick ? [selK, selK] : (S.when !== 'any' ? range() : [null, null]);
+    const minK = pick ? (opts.min === null ? null : (opts.min || iso(today))) : iso(today);
+    const maxK = pick ? (opts.max || null) : null;
+    const canRange = !pick && !!onRange;
     const grid = el('div', { class: 'cal-grid' });
     for (const w of ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']) grid.append(el('div', { class: 'cal-wd' }, w));
     const start = addDays(first, -((first.getDay() + 6) % 7));
     const days = [];
     for (let i = 0; i < 42; i++) {
-      const d = addDays(start, i), k = iso(d), n = S.days[k] || 0, past = d < today;
+      const d = addDays(start, i), k = iso(d), n = !pick && S.days ? (S.days[k] || 0) : 0, past = (minK && k < minK) || (maxK && k > maxK);
       const on = ra && k >= ra && k <= rb;
-      const b = el('button', { type: 'button', 'data-k': k, class: ['cal-day', d.getMonth() !== S.calM && 'other', past && 'past', k === iso(today) && 'today', d.getDay() % 6 === 0 && 'we', on && (ra === rb || k === ra || k === rb ? 'on' : 'range')].filter(Boolean).join(' ') },
+      const b = el('button', { type: 'button', 'data-k': k, class: ['cal-day', d.getMonth() !== viewM && 'other', past && 'past', k === iso(today) && 'today', d.getDay() % 6 === 0 && 'we', on && (ra === rb || k === ra || k === rb ? 'on' : 'range')].filter(Boolean).join(' ') },
         el('span', { class: 'd' }, d.getDate()),
         n && !past ? (n <= 3 ? el('span', { class: 'dots' }, Array.from({ length: n }, () => el('i'))) : el('span', { class: 'c' }, n)) : el('span', { class: 'dots' }));
       if (!past) days.push(b);
       grid.append(b);
     }
-    // Жест: мышь — зажать и протянуть; палец — удержать 350 мс, потом вести
+    // Жест: мышь — зажать и протянуть; палец — удержать 350 мс, потом вести (только там, где нужен период)
     let drag = null;
     const paint = () => {
       if (!drag) return;
@@ -474,43 +482,70 @@
       for (const d of days) { const k = d.dataset.k; const inside = k >= a && k <= b; d.classList.toggle('sel', inside && drag.active); d.classList.toggle('sel-edge', drag.active && (k === a || k === b)); }
     };
     const clearPaint = () => { for (const d of days) d.classList.remove('sel', 'sel-edge'); };
-    grid.addEventListener('pointerdown', ev => {
-      const b = ev.target.closest('.cal-day'); if (!b || b.classList.contains('past') || !b.dataset.k) return;
-      drag = { start: b.dataset.k, cur: b.dataset.k, active: ev.pointerType === 'mouse', moved: false, x: ev.clientX, y: ev.clientY, id: ev.pointerId };
-      if (!drag.active) drag.timer = setTimeout(() => { if (drag && !drag.moved) { drag.active = true; navigator.vibrate?.(12); grid.classList.add('dragging'); paint(); } }, 350);
-    });
-    grid.addEventListener('pointermove', ev => {
-      if (!drag) return;
-      if (!drag.active) { if (Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) > 8) { clearTimeout(drag.timer); drag = null; } return; }
-      const over = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.cal-day');
-      if (over?.dataset.k && !over.classList.contains('past') && over.dataset.k !== drag.cur) { drag.cur = over.dataset.k; paint(); }
-    });
-    grid.addEventListener('touchmove', ev => { if (drag?.active) ev.preventDefault(); }, { passive: false });
-    grid.addEventListener('contextmenu', ev => { if (drag) ev.preventDefault(); });
-    const finish = ev => {
-      if (!drag) return;
-      clearTimeout(drag.timer);
-      const d = drag; drag = null; grid.classList.remove('dragging'); clearPaint();
-      if (d.active && d.cur !== d.start) { const [a, b] = [d.start, d.cur].sort(); store.set('aidaem_cal_hint', true); onRange ? onRange(a, b) : onPick(a); return; }
-      if (d.active && ev.pointerType === 'mouse') { onPick(d.start); return; }
-      if (d.active) { onPick(d.start); return; } // долгое удержание без движения — как тап
-      if (ev.type === 'pointerup' && ev.pointerType !== 'mouse') onPick(d.start); // обычный тап пальцем
-    };
-    grid.addEventListener('pointerup', finish);
-    grid.addEventListener('pointercancel', () => { if (drag) clearTimeout(drag.timer); drag = null; grid.classList.remove('dragging'); clearPaint(); });
-    grid.addEventListener('click', ev => { if (ev.pointerType === 'mouse' || ev.detail === 0) { const b = ev.target.closest('.cal-day'); if (b?.dataset.k && !b.classList.contains('past') && !drag) onPick(b.dataset.k); } });
+    if (canRange) {
+      grid.addEventListener('pointerdown', ev => {
+        const b = ev.target.closest('.cal-day'); if (!b || b.classList.contains('past') || !b.dataset.k) return;
+        drag = { start: b.dataset.k, cur: b.dataset.k, active: ev.pointerType === 'mouse', moved: false, x: ev.clientX, y: ev.clientY, id: ev.pointerId };
+        if (!drag.active) drag.timer = setTimeout(() => { if (drag && !drag.moved) { drag.active = true; navigator.vibrate?.(12); grid.classList.add('dragging'); paint(); } }, 350);
+      });
+      grid.addEventListener('pointermove', ev => {
+        if (!drag) return;
+        if (!drag.active) { if (Math.hypot(ev.clientX - drag.x, ev.clientY - drag.y) > 8) { clearTimeout(drag.timer); drag = null; } return; }
+        const over = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.cal-day');
+        if (over?.dataset.k && !over.classList.contains('past') && over.dataset.k !== drag.cur) { drag.cur = over.dataset.k; paint(); }
+      });
+      grid.addEventListener('touchmove', ev => { if (drag?.active) ev.preventDefault(); }, { passive: false });
+      grid.addEventListener('contextmenu', ev => { if (drag) ev.preventDefault(); });
+      const finish = ev => {
+        if (!drag) return;
+        clearTimeout(drag.timer);
+        const d = drag; drag = null; grid.classList.remove('dragging'); clearPaint();
+        if (d.active && d.cur !== d.start) { const [a, b] = [d.start, d.cur].sort(); store.set('aidaem_cal_hint', true); onRange(a, b); return; }
+        if (d.active) { onPick(d.start); return; } // долгое удержание без движения — как тап
+        if (ev.type === 'pointerup' && ev.pointerType !== 'mouse') onPick(d.start); // обычный тап пальцем
+      };
+      grid.addEventListener('pointerup', finish);
+      grid.addEventListener('pointercancel', () => { if (drag) clearTimeout(drag.timer); drag = null; grid.classList.remove('dragging'); clearPaint(); });
+    }
+    grid.addEventListener('click', ev => { if (!canRange || ev.pointerType === 'mouse' || ev.detail === 0) { const b = ev.target.closest('.cal-day'); if (b?.dataset.k && !b.classList.contains('past') && !drag) onPick(b.dataset.k); } });
 
-    const minM = new Date(today.getFullYear(), today.getMonth(), 1);
-    const nav = dir => { const d = new Date(S.calY, S.calM + dir, 1); if (d < minM) return; S.calY = d.getFullYear(); S.calM = d.getMonth(); H.cal.replaceWith(calendar(onPick, onRange)); };
-    H.cal = el('div', { class: 'cal' },
+    const minD = minK ? parseIso(minK) : new Date(today.getFullYear() - 1, 0, 1);
+    const minM = new Date(minD.getFullYear(), minD.getMonth(), 1);
+    const maxM = maxK ? (d => new Date(d.getFullYear(), d.getMonth(), 1))(parseIso(maxK)) : null;
+    let root;
+    const nav = dir => {
+      const d = new Date(viewY, viewM + dir, 1); if (d < minM || (maxM && d > maxM)) return;
+      if (pick) { root.replaceWith(calendar(onPick, onRange, { ...opts, y: d.getFullYear(), m: d.getMonth() })); return; }
+      S.calY = d.getFullYear(); S.calM = d.getMonth(); H.cal.replaceWith(calendar(onPick, onRange));
+    };
+    root = el('div', { class: 'cal' + (pick ? ' cal-pick' : '') },
       el('div', { class: 'cal-head' },
         el('button', { type: 'button', class: 'icon-btn', disabled: first <= minM, onclick: () => nav(-1) }, '‹'),
         el('span', { class: 'month' }, cap(first.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }).replace(' г.', ''))),
-        el('button', { type: 'button', class: 'icon-btn', onclick: () => nav(1) }, '›')),
+        el('button', { type: 'button', class: 'icon-btn', disabled: !!(maxM && first >= maxM), onclick: () => nav(1) }, '›')),
       grid,
-      el('div', { class: 'cal-foot' }, matchMedia('(pointer: coarse)').matches ? 'Тап — день. Зажмите и проведите — период.' : 'Клик — день. Зажмите мышь и протяните — период.'));
-    if (!store.get('aidaem_cal_hint', false)) H.cal.append(calHint());
-    return H.cal;
+      canRange ? el('div', { class: 'cal-foot' }, matchMedia('(pointer: coarse)').matches ? 'Тап — день. Зажмите и проведите — период.' : 'Клик — день. Зажмите мышь и протяните — период.') : null);
+    if (!pick) { H.cal = root; if (!store.get('aidaem_cal_hint', false)) root.append(calHint()); }
+    return root;
+  }
+  // Поле даты в формах: кнопка в стиле обычного поля, по тапу — тот же календарь листом. У элемента есть .value (ISO) как у input[type=date]
+  const fmtDateBtn = d => cap(d.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' }));
+  function dateField(v, o = {}) {
+    let val = v || '';
+    const btn = el('button', { type: 'button', class: 'input date-btn' });
+    const paint = () => { btn.classList.toggle('empty', !val); btn.innerHTML = ''; btn.append(el('span', {}, val ? fmtDateBtn(parseIso(val)) : (o.placeholder || 'Выберите дату')), el('span', { class: 'ico' }, '📅')); };
+    Object.defineProperty(btn, 'value', { get: () => val, set: x => { val = x || ''; paint(); } });
+    btn.onclick = () => {
+      const host = el('div', { class: 'modal-bg sheet-bg date-bg', style: 'z-index:70' }); host.addEventListener('click', ev => { if (ev.target === host) host.remove(); });
+      const done = k => { val = k || ''; paint(); host.remove(); o.onchange?.(); };
+      const minK = o.min === null ? null : (o.min || iso(today));
+      const quick = [['Сегодня', iso(today)], ['Завтра', iso(addDays(today, 1))]].filter(([, k]) => (!minK || k >= minK) && (!o.max || k <= o.max));
+      host.append(el('div', { class: 'date-sheet' }, el('div', { class: 'sheet-grip' }), el('div', { class: 'sheet-head' }, el('b', {}, o.title || 'Выберите дату'), el('button', { type: 'button', class: 'icon-btn', onclick: () => host.remove() }, '✕')),
+        calendar(done, null, { pick: true, sel: val, min: o.min, max: o.max }),
+        el('div', { class: 'pills', style: 'margin-top:10px' }, quick.map(([t, k]) => el('button', { type: 'button', class: 'pill' + (val === k ? ' on' : ''), onclick: () => done(k) }, t)), o.allowEmpty ? el('button', { type: 'button', class: 'pill', onclick: () => done('') }, 'Очистить') : null)));
+      document.body.append(host);
+    };
+    paint(); return btn;
   }
   // Подсказка про жест — показывается один раз
   function calHint() {
@@ -1176,8 +1211,9 @@
     return out.length ? out : [start];
   }
 
-  function renderNew() {
+  async function renderNew() {
     const root = $('#app'); root.innerHTML = '';
+    if (me === null) await loadMe(); // прямой переход по ссылке: профиль ещё не загружен — не показывать «представьтесь» зря
     if (!me?.registered) {
       root.append(el('div', { class: 'wrap page page-narrow' }, el('a', { class: 'back', href: '#/' }, '← Назад'), el('div', { class: 'gate' }, el('div', { class: 'e' }, '👤'), el('h1', {}, 'Сначала представьтесь'), el('p', {}, 'Чтобы создавать события, нужны имя, контакт и тип аккаунта: человек собирает небольшие встречи (до 30 человек), организация ведёт сеансы, прокат, расписание и продвижение. Паролей нет.'), el('button', { type: 'button', class: 'btn btn-primary btn-lg', onclick: () => profileModal({ gate: 'Представьтесь', onDone: () => route() }) }, 'Представиться'))));
       return;
@@ -1223,7 +1259,7 @@
       wrap.get = () => [...box.querySelectorAll('input[type=time]')].map(i => i.value).filter(Boolean);
       return wrap;
     };
-    const dateIn = (v, extra = {}) => el('input', { type: 'date', value: v, min: iso(today), required: true, onchange: updateSummary, ...extra });
+    const dateIn = (v, extra = {}) => dateField(v, { min: iso(today), onchange: updateSummary, ...extra });
     const timeIn = v => el('input', { type: 'time', value: v, required: true, onchange: updateSummary });
     const numSel = (opts, v) => el('select', { onchange: updateSummary }, opts.map(([x, t]) => el('option', { value: x, selected: String(x) === String(v) }, t)));
     function renderSchedule() {
@@ -1553,7 +1589,7 @@
     const ann = o.announcement || {};
     const aTitle = el('input', { class: 'input', placeholder: 'Например: Сезон открыт! Катаемся с 15 ноября', value: ann.title || '', maxlength: 120 });
     const aText = el('textarea', { class: 'input', style: 'height:80px;padding:12px 14px', placeholder: 'Что открыто, часы, цены, что взять с собой', maxlength: 600 }, ann.text || '');
-    const aFrom = el('input', { class: 'input', type: 'date', value: ann.from || '' }), aUntil = el('input', { class: 'input', type: 'date', value: ann.until || '' });
+    const aFrom = dateField(ann.from || '', { allowEmpty: true, min: null, title: 'Показывать с', placeholder: 'Сразу' }), aUntil = dateField(ann.until || '', { allowEmpty: true, min: null, title: 'Показывать до', placeholder: 'Без срока' });
     const annBox = el('div', { class: 'nf-section' + (cabState.focusAnnounce ? ' flash' : '') }, el('div', { class: 'nf-head' }, el('span', { class: 'nf-num' }, '📣'), el('div', {}, el('h2', {}, kinds[o.kind]?.season ? 'Объявление о сезоне' : 'Объявление'), el('p', {}, 'Баннер на странице организации; текст индексируется поиском. Чтобы попасть в выдачу по датам, добавьте ещё «свободное посещение» с часами работы.'))),
       el('div', { class: 'field' }, el('label', {}, 'Заголовок'), aTitle), el('div', { class: 'field' }, el('label', {}, 'Текст'), aText), el('div', { class: 'grid2' }, el('div', { class: 'field' }, el('label', {}, 'Показывать с'), aFrom), el('div', { class: 'field' }, el('label', {}, 'До'), aUntil)),
       kinds[o.kind]?.season ? el('a', { class: 'btn btn-outline btn-sm', href: `#/new?org=${encodeURIComponent(o.name)}&kind=open` }, '+ Добавить часы работы сезона (свободное посещение)') : null);
@@ -1809,7 +1845,7 @@
     if ((m = h.match(/^#\/event\/(.+)$/))) return renderEvent(decodeURIComponent(m[1]));
     if ((m = h.match(/^#\/org\/(.+)$/))) return renderOrg(decodeURIComponent(m[1]));
     if ((m = h.match(/^#\/checkin\/(.+)$/))) return renderCheckin(m[1]);
-    if (h.startsWith('#/new')) { renderNew(); return prefillNew(new URLSearchParams(h.split('?')[1] || '')); }
+    if (h.startsWith('#/new')) return renderNew().then(() => prefillNew(new URLSearchParams(h.split('?')[1] || '')));
     if (h.startsWith('#/cabinet')) return renderCabinet(new URLSearchParams(h.split('?')[1] || ''));
     if (h === '#/my') return renderMy();
     renderHome();

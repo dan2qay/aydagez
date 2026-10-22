@@ -175,7 +175,7 @@ app.get('/api/events', async (req, res, next) => {
     let pool = events;
     let corrected = null;
     let scores = null;
-    let aiInfo = null, aiScores = null, fallbackAi = false;
+    let aiInfo = null, aiScores = null, fallbackAi = false, noveltyMap = null;
     // ИИ-режим: ai=1 — всегда, ai=0 — никогда, иначе (auto) сам включается для фраз («хочу…», «куда…», 4+ слов).
     const aiParam = String(ai ?? 'auto');
     const useAi = !!query.trim() && aiParam !== '0' && (aiParam === '1' || looksLikePhrase(query));
@@ -183,7 +183,7 @@ app.get('/api/events', async (req, res, next) => {
     // Жёсткие признаки — из правил; догадки модели (soft) только ранжируют, но не отсекают: «сегодня» не должно превращаться в «D&D сегодня»
     const sf = parsed?.soft || {};
     const tagSignal = !!parsed && !!((!sf.audience && parsed.audience.length) || (!sf.vibe && parsed.vibe.length) || (!sf.setting && parsed.setting.length) || (!sf.activity && parsed.activity.length) || (!sf.intensity && parsed.intensity) || parsed.price || parsed.times.length);
-    const hasSignal = tagSignal || (!!parsed && !!(parsed.weekdays.length || parsed.when || parsed.dates || parsed.districts?.length || parsed.hour || parsed.pmax != null || parsed.pmin != null || parsed.kidAge != null || parsed.exclude?.activity?.length || parsed.exclude?.audience?.length || parsed.exclude?.times?.length));
+    const hasSignal = tagSignal || (!!parsed && !!(parsed.weekdays.length || parsed.when || parsed.dates || parsed.districts?.length || parsed.hour || parsed.pmax != null || parsed.pmin != null || parsed.kidAge != null || parsed.exclude?.activity?.length || parsed.exclude?.audience?.length || parsed.exclude?.times?.length || parsed.novelty));
     // Условия из фразы, которые отсекают жёстко: даты, цена, исключения («без детей», «кроме кино», «не вечером»)
     const hardCut = list => {
       const ex = parsed.exclude || {};
@@ -215,6 +215,20 @@ app.get('/api/events', async (req, res, next) => {
       found = hardCut(found);
       if (parsed.districts?.length) found = found.filter(e => parsed.districts.includes(e.district));
       if (parsed.hour) { const mm = e => { const d = new Date(e.start); return d.getHours() * 60 + d.getMinutes(); }; found = found.filter(e => (mm(e) >= parsed.hour.from && mm(e) <= parsed.hour.to) || (e.kind === 'open' && String(e.meta?.open_from || '00:00') <= `${String(Math.floor(parsed.hour.to / 60)).padStart(2, '0')}:00` && String(e.meta?.open_to || '23:59') >= `${String(Math.floor(parsed.hour.from / 60)).padStart(2, '0')}:00`)); }
+      if (parsed.novelty) { // «что-нибудь новое»: редкие серии, необычные форматы и то, что этот человек ещё не открывал
+        const seen = new Set((await q(`SELECT DISTINCT (props->>'event_id')::int AS id FROM client_events WHERE client_id=$1 AND name='event_view' AND props ? 'event_id' AND ts > now() - interval '180 days' UNION SELECT event_id FROM registrations WHERE client_id=$1`, [req.clientId])).rows.map(r => r.id));
+        const byId = new Map(pool.map(e => [e.id, e])); const seenSeries = new Set([...seen].map(id => byId.get(id)?.seriesKey).filter(Boolean));
+        const dates = new Map(); for (const e of events) if (e.seriesKey) dates.set(e.seriesKey, (dates.get(e.seriesKey) || new Set()).add(e.date));
+        const UNUSUAL = new Set(['vr', 'quest', 'circus', 'boat', 'workshop', 'kidsshow', 'kidsclass', 'climb', 'park', 'bowling', 'anticafe', 'stol', 'dating', 'mafia', 'classical', 'jazz', 'exhibition', 'tour']);
+        noveltyMap = new Map();
+        for (const e of found) {
+          const n = e.seriesKey ? (dates.get(e.seriesKey)?.size || 1) : 1;
+          const rare = n <= 1 ? 1 : n <= 4 ? 0.7 : n <= 10 ? 0.4 : 0.1;
+          const unseen = seen.has(e.id) || (e.seriesKey && seenSeries.has(e.seriesKey)) ? 0 : 0.5;
+          noveltyMap.set(e.id, rare + unseen + (UNUSUAL.has(e.sub) ? 0.3 : 0));
+        }
+        const strong = found.filter(e => noveltyMap.get(e.id) >= 1); if (strong.length >= 8) found = strong; // только по-настоящему новое, если его хватает
+      }
       let fallback = false;
       if (!found.length) { fallbackAi = true; // по смыслу пусто — показываем по словам, чтобы лента не была пустой
         const negWords = new Set((parsed.segments || []).filter(x => x.neg).flatMap(x => x.text.split(' ')));
@@ -267,7 +281,7 @@ app.get('/api/events', async (req, res, next) => {
     const tokens = query.trim() ? tokenize(query).map(stem) : [];
     const sig = await getSignals();
     const interests = (await q(`SELECT interests FROM clients WHERE id=$1`, [req.clientId])).rows[0]?.interests || [];
-    list = sort === 'time' ? list : rankList(list, { now: new Date(), hits: scores, tokens, aiScores, clicks: sig.clicks.get(normalize(query)) || null, popularity: sig.popularity, interests });
+    list = sort === 'time' ? list : rankList(list, { now: new Date(), hits: scores, tokens, aiScores, novelty: noveltyMap, clicks: sig.clicks.get(normalize(query)) || null, popularity: sig.popularity, interests });
     if (sort !== 'time' && parsed && !fallbackAi && (parsed.activity.includes('sport') || !parsed.activity.length) && !qActs.length) list = diversifyByDay(list, e => (e.acts || [])[0] || e.sub); // общий запрос («спортом», «с семьёй») — разные виды рядом
     if (query.trim()) q(`INSERT INTO search_log(client_id, session_id, query, corrected, results, mode, filters) VALUES($1,$2,$3,$4,$5,$6,$7)`,
       [req.clientId, req.sessionId || null, query.slice(0, 200), corrected, list.length, aiInfo ? 'ai' : 'text', JSON.stringify({ cat, sub, mood, with: withWhom, budget, from, to, ai_source: aiInfo?.source || null, fallback: !!aiInfo?.fallback })]).catch(() => {});

@@ -132,14 +132,8 @@
     if (me?.avatar) { av.innerHTML = ''; av.append(el('img', { src: me.avatar, alt: '' })); av.classList.add('filled'); }
     else if (me?.name) { av.textContent = me.name.trim().charAt(0).toUpperCase(); av.classList.add('filled'); }
   }
-  function initTheme() {
-    $('#theme-toggle').addEventListener('click', () => {
-      const dark = document.documentElement.getAttribute('data-theme') === 'dark' || (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
-      const next = dark ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next); store.set('aidaem_theme', next);
-      api('/api/me', { method: 'PATCH', body: { theme: next } }).catch(() => {});
-    });
-  }
+  function initTheme() { if (!document.documentElement.getAttribute('data-theme')) document.documentElement.setAttribute('data-theme', 'light'); }
+  function setTheme(t) { document.documentElement.setAttribute('data-theme', t); store.set('aidaem_theme', t); api('/api/me', { method: 'PATCH', body: { theme: t } }).catch(() => {}); }
   // ---------- Выпадающие фильтры: в строке поиска и (на телефоне) над лентой ----------
   const CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   const FILTERS = [
@@ -617,15 +611,16 @@
 
   // ---------- Экран «Когда?»: лента событий как у Luma + календарь ----------
   function screenFeed(p) {
-    const back = S.via === 'search' ? () => go('what') : S.cat ? () => go('sub') : () => go('mood');
     H.feed = el('div', { class: 'feed' });
     H.calCol = el('aside', { class: 'feed-side' });
-    H.quick = el('div', { class: 'feed-quick' });
-    p.append(backBtn('Назад', back), stepper('when'),
-      el('div', { class: 'feed-head' },
-        el('div', {}, el('h1', { class: 'q-title' }, 'Когда?'), el('p', { class: 'q-sub' }, 'Вы выбрали: ', (H.whatB = el('b', {}, whatTitle())), '. Листайте ленту или выберите день в календаре.')),
-        el('button', { type: 'button', class: 'crumb ghost', onclick: restart }, '↺ Начать заново')),
-      el('div', { class: 'feed-layout' }, el('div', { class: 'feed-main' }, H.quick, (H.strip = el('div', { class: 'day-strip feed-strip' })), H.feed), H.calCol));
+    H.quick = el('div', { class: 'feed-quick' }); // периоды и кнопки рисуются сюда для совместимости; на экране их заменяет лента дней
+    // Строка поиска сверху: запрос (уже без опечаток) можно поправить, фильтры — внутри строки
+    const fq = (H.fq = el('input', { type: 'search', value: S.q, placeholder: S.q ? '' : `${whatTitle().replace(/^✨ /, '')} — уточните словами`, 'aria-label': 'Поиск событий', enterkeyhint: 'search', autocomplete: 'off' }));
+    const form = el('form', { class: 'hero-search feed-search', role: 'search', onsubmit: ev => { ev.preventDefault(); fq.blur(); setQuery(fq.value); } },
+      el('span', { class: 'ico', html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' }),
+      fq, el('div', { class: 'search-filters', 'data-filters': true }), el('button', { type: 'submit', class: 'go', 'aria-label': 'Найти' }, '→'));
+    attachSuggest(fq, form, v => setQuery(v));
+    p.append(form, el('div', { class: 'feed-layout' }, el('div', { class: 'feed-main' }, (H.strip = el('div', { class: 'day-strip feed-strip' })), H.feed), H.calCol));
     renderQuick(); renderSide();
     fetchFeed();
   }
@@ -654,6 +649,8 @@
         el('b', {}, i === 0 ? 'Сегодня' : i === 1 ? 'Завтра' : `${WD[d.getDay()]} ${d.getDate()}`), el('span', {}, n ? `${n}` : '—')));
     }
     if (S.when === 'range' || S.when === 'week' || S.when === 'weekend') H.strip.append(el('button', { type: 'button', class: 'day-pill on', onclick: () => calendarSheet() }, el('b', {}, whenTitle().split(' · ')[0]), el('span', {}, 'период')));
+    H.strip.append(el('button', { type: 'button', class: 'day-pill tool only-phone', onclick: () => calendarSheet(), title: 'Выбрать даты' }, el('b', {}, '📅'), el('span', {}, 'даты')),
+      el('button', { type: 'button', class: 'day-pill tool only-phone' + (S.calOpen ? ' on' : ''), title: 'Карта', onclick: ev => { S.calOpen = !S.calOpen; H.calCol.classList.toggle('open', S.calOpen); ev.currentTarget.classList.toggle('on', S.calOpen); if (S.calOpen) { H.calCol.scrollIntoView({ block: 'start', behavior: 'smooth' }); setTimeout(() => H.map?.invalidate(), 60); } } }, el('b', {}, '🗺️'), el('span', {}, 'карта')));
   }
   // Месячный календарь листом снизу: выбрать день или период жестом, потом лист закрывается
   function calendarSheet(draft = null, after = null) {
@@ -834,10 +831,10 @@
     const list = data.events, n = list.length;
     const shown = S.when === 'any' ? new Set(list.map(e => e.seriesKey || 'e' + e.id)).size : [...new Set(list.map(e => e.seriesKey && SLOTTED.has(e.kind) ? `${e.date}:${e.seriesKey}` : String(e.id)))].length;
     box.append(el('div', { class: 'feed-title' }, el('h2', {}, whenTitle()), el('span', { class: 'meta' }, `${shown} ${plural(shown, ['событие', 'события', 'событий'])}`)));
-    if (data.ai?.fixed && H.whatB?.isConnected) H.whatB.textContent = `✨ «${data.ai.fixed}»`; // показываем запрос уже без опечаток
-    if (data.ai?.fixed) box.append(el('div', { class: 'corrected' }, '✏️ Исправили опечатки: ', el('b', {}, `«${data.ai.fixed}»`)));
-    if (data.ai) box.append(el('div', { class: 'ai-strip' }, el('b', {}, '✨ ИИ понял:'), ...data.ai.human.map(h => el('span', { class: 'ai-chip' + (/^(без |не |кроме )/.test(h) ? ' neg' : '') }, h)), ...(data.ai.words || []).slice(0, 4).map(w => el('span', { class: 'ai-chip word', title: 'Искали по слову в названии и описании' }, `«${w}…»`)), data.ai.fallback ? el('span', { class: 'meta' }, '— по смыслу ничего не нашлось, показываем по словам') : null, el('span', { class: 'meta ai-src', title: 'Кто разобрал запрос' }, data.ai.source && data.ai.source.startsWith('llm:') ? `модель ${data.ai.source.slice(4)}` : data.ai.pending ? 'правила · модель уточняет' : 'правила, без модели'), el('button', { type: 'button', class: 'step-link', onclick: () => { S.ai = false; S.aiOff = true; persist(); fetchFeed(); } }, 'обычный поиск')));
-    if (data.corrected) box.append(el('div', { class: 'corrected' }, '🔎 Возможно, вы имели в виду', el('button', { type: 'button', onclick: () => setQuery(data.corrected) }, data.corrected), n ? el('span', {}, '— показали результаты по исправленному запросу') : null));
+    const shownQ = data.ai?.fixed || data.corrected || null; // опечатки исправлены — показываем исправленный запрос там, где его можно поправить
+    if (shownQ && S.q && shownQ !== S.q) { S.q = shownQ; persist(); }
+    if (H.fq?.isConnected && S.q) H.fq.value = S.q;
+    if ($('#nav-q') && S.q) $('#nav-q').value = S.q;
     if (n >= 4) {
       const picked = [], subs = new Set(), orgs = new Set();
       const base = list.filter(e => !e.promoted); // реклама в подбор не попадает никогда
@@ -1175,6 +1172,9 @@
       if (my.has(c.key)) my.delete(c.key); else my.add(c.key); ev.currentTarget.classList.toggle('on', my.has(c.key));
       try { await api('/api/me', { method: 'PATCH', body: { interests: [...my] } }); } catch {}
     } }, `${c.emoji} ${c.title}`)));
+    { const cur = document.documentElement.getAttribute('data-theme') || 'light'; const box = el('div', { class: 'pills' });
+      const paint = () => { box.innerHTML = ''; for (const [k, t] of [['light', '☀️ Светлая'], ['dark', '🌙 Тёмная']]) box.append(el('button', { type: 'button', class: 'pill' + ((document.documentElement.getAttribute('data-theme') || 'light') === k ? ' on' : ''), onclick: () => { setTheme(k); paint(); } }, t)); };
+      paint(); page.append(el('div', { class: 'section' }, el('h3', {}, 'Настройки'), el('p', { class: 'help', style: 'margin-bottom:10px' }, 'Оформление сайта'), box)); void cur; }
     page.append(el('div', { class: 'section' }, el('h3', {}, 'Мои интересы'), el('p', { class: 'help', style: 'margin-bottom:10px' }, 'Отметьте, что вам близко — учтём в подборе.'), chips));
     if (!me?.isOrganizer) page.append(el('div', { class: 'callout', style: 'margin-top:24px' }, el('span', { class: 'e' }, '🎪'), el('div', {}, el('b', {}, 'Проводите события? '), el('a', { href: '#/new', style: 'font-weight:600;text-decoration:underline' }, 'Добавьте первое'), ' — и здесь появится кабинет организатора.')));
     root.append(page);

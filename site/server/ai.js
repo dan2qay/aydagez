@@ -157,13 +157,15 @@ export function tagEvent(e) {
 // Газетир для разбора запроса: словари признаков → фразы со слотами. Строится один раз.
 const QUERY_STOP = new Set(['все', 'всё', 'всего', 'всякое', 'любое', 'угодно', 'чтонибудь', 'хочу', 'хочется', 'хотим', 'хотелось', 'хотел', 'хотела', 'хотели', 'куда', 'сходить', 'сходим', 'пойти', 'пойдем', 'пойдём', 'где', 'то', 'что', 'чтото', 'нибудь', 'можно', 'бы', 'мне', 'нам', 'мы', 'я', 'с', 'со', 'в', 'во', 'на', 'и', 'или', 'как', 'для', 'это', 'чтобы', 'казань', 'казани', 'казане', 'город', 'городе', 'район', 'районе', 'недалеко', 'рядом', 'поблизости', 'давай', 'давайте', 'ищу', 'ищем', 'посоветуй', 'посоветуйте', 'подскажи', 'подскажите', 'какой', 'какие', 'какое', 'есть', 'ли', 'же', 'еще', 'ещё', 'чем', 'заняться', 'сделать', 'провести', 'время', 'мероприятие', 'мероприятия', 'событие', 'события', 'по', 'к', 'ко', 'от', 'до', 'после', 'за', 'из', 'у', 'о', 'об', 'про', 'а', 'но', 'так', 'там', 'тут', 'хорошо', 'интересное', 'интересно', 'интересного', 'что-нибудь', 'куданибудь', 'чем-нибудь', 'вместе', 'пожалуйста', 'нас', 'наш', 'наша', 'свой', 'свою', 'моим', 'моей', 'мой', 'моя']);
 const WHEN_MARKERS = { today: ['сегодня', 'сейчас'], tomorrow: ['завтра'], dayafter: ['послезавтра'], week: ['на неделе', 'на этой неделе', 'до конца недели', 'всю неделю'], weekend: ['выходн', 'уикенд'] };
+// «Что-нибудь новое», «необычное», «попробовать впервые» — смысл «новизна»: редкие события и то, что человек ещё не видел
+const NOVELTY = ['новые места', 'новых мест', 'новое место', 'новое', 'нового', 'новенькое', 'новенького', 'новинк', 'необычн', 'незаурядн', 'нестандартн', 'оригинальн', 'экзотич', 'редк', 'впервые попробовать', 'попробовать что-то', 'что-то другое', 'чем-то другим', 'удиви', 'неизбит', 'свежее', 'чего-то нового', 'не как обычно', 'разнообраз'];
 const NOISE_Q = { loud: ['шумн', 'громк', 'потусить', 'оторваться', 'танцпол'], quiet: ['тих', 'тишин', 'без шума', 'спокойн', 'поговорить'] };
 const GAZETTEER = (() => {
   const g = [];
   const add = (dict, slot, conv = v => v) => { for (const [k, ms] of Object.entries(dict)) for (const m of ms) g.push({ phrase: m, slot, value: conv(k) }); };
   add(AUDIENCE, 'audience'); add(VIBE, 'vibe'); add(SETTING, 'setting'); add(ACTIVITY, 'activity');
   add(INTENSITY, 'intensity'); add({ free: PRICE.free, cheap: PRICE.cheap }, 'price'); add(TIME, 'times');
-  add(WEEKDAY, 'weekdays', Number); add(NOISE_Q, 'noise'); add(WHEN_MARKERS, 'when');
+  add(WEEKDAY, 'weekdays', Number); add(NOISE_Q, 'noise'); add(WHEN_MARKERS, 'when'); add({ yes: NOVELTY }, 'novelty');
   for (const d of DISTRICTS) for (const t of d.terms) g.push({ phrase: t, slot: 'district', value: d.key });
   for (const t of OUTSKIRTS_TERMS) g.push({ phrase: t, slot: 'outskirts', value: true });
   return g;
@@ -175,7 +177,7 @@ export function parseQuery(q, now = new Date()) {
   const { segments, grammar, rest, fixes, fixed } = segmentQuery(q, now);
   const audience = [], vibe = [], setting = [], activity = [], times = [], weekdays = [], districts = [], whens = [];
   const exclude = { activity: [], audience: [], times: [], setting: [] };
-  let intensity = null, price = null, noise = null, outskirts = false;
+  let intensity = null, price = null, noise = null, outskirts = false, novelty = false;
   const push = (arr, v) => { if (!arr.includes(v)) arr.push(v); };
   for (const sg of segments) {
     const { slot, value, neg } = sg;
@@ -189,7 +191,7 @@ export function parseQuery(q, now = new Date()) {
     else if (slot === 'activity') push(activity, value); else if (slot === 'times') push(times, value); else if (slot === 'weekdays') push(weekdays, value);
     else if (slot === 'intensity') intensity = intensity || value; else if (slot === 'price') price = price === 'free' ? 'free' : value;
     else if (slot === 'noise') noise = noise || value; else if (slot === 'when') push(whens, value);
-    else if (slot === 'district') push(districts, value); else if (slot === 'outskirts') outskirts = true;
+    else if (slot === 'district') push(districts, value); else if (slot === 'outskirts') outskirts = true; else if (slot === 'novelty') novelty = true;
   }
   if (outskirts) { districts.length = 0; for (const d of DISTRICTS) if (!d.center) districts.push(d.key); }
   // Когда: одно слово-период («сегодня», «на выходных») — ключом; дата или несколько периодов — диапазоном
@@ -217,7 +219,7 @@ export function parseQuery(q, now = new Date()) {
   let hour = grammar.hour;
   // «к восьми на стендап», «в 9 вечеринка»: 7–11 без «утра/вечера» у вечерних форматов — это вечер
   if (hour && grammar.hourAmbiguous && (times.includes('evening') || times.includes('night') || activity.some(a => ['standup', 'party', 'concert', 'quiz', 'karaoke', 'jazz', 'mafia', 'theatre', 'dating', 'stol'].includes(a)))) hour = { from: Math.min(1439, hour.from + 720), to: Math.min(1439, hour.to + 720) };
-  const parsed = { audience, vibe, setting, activity, intensity, price, times, weekdays, noise, hour, when, dates, districts, outskirts, kidAge, pmin, pmax, exclude, adult: grammar.adult, group: grammar.group,
+  const parsed = { audience, vibe, setting, activity, intensity, price, times, weekdays, noise, hour, when, dates, districts, outskirts, kidAge, pmin, pmax, exclude, novelty, adult: grammar.adult, group: grammar.group,
     segments: segments.map(s => ({ text: s.text, slot: s.slot, value: s.value, neg: s.neg || undefined })), fixes, fixed, rest, source: 'rules' };
   parsed.restHard = parsed.rest;
   return { ...parsed, human: humanize(parsed) };
@@ -245,6 +247,7 @@ export function humanize(p) {
   for (const a of p.exclude?.audience || []) human.push(a === 'kids' ? 'без детей' : `не ${a}`);
   for (const t of p.exclude?.times || []) human.push({ morning: 'не утром', day: 'не днём', evening: 'не вечером', night: 'не ночью', weekend: 'не в выходные' }[t] || t);
   if (p.group) human.push(`компания ${p.group} чел.`);
+  if (p.novelty) human.push('что-то новое');
   return [...new Set(human)];
 }
 
@@ -309,7 +312,7 @@ function sanitize(j) {
   const rest = (Array.isArray(j.keywords) ? j.keywords : []).flatMap(k => tokenize(String(k))).map(stem).slice(0, 6);
   return { audience, vibe, setting, activity, intensity, price, times, weekdays, rest };
 }
-const hasAnySignal = p => !!(p.audience.length || p.vibe.length || p.setting.length || p.activity.length || p.intensity || p.price || p.times.length || p.weekdays.length || p.when || p.hour || p.pmax != null || p.pmin != null || p.kidAge != null || p.districts?.length || p.exclude?.activity?.length || p.exclude?.audience?.length);
+const hasAnySignal = p => !!(p.audience.length || p.vibe.length || p.setting.length || p.activity.length || p.intensity || p.price || p.times.length || p.weekdays.length || p.when || p.hour || p.pmax != null || p.pmin != null || p.kidAge != null || p.districts?.length || p.exclude?.activity?.length || p.exclude?.audience?.length || p.novelty);
 
 // Слабая модель: разбор фразы гостя. Кэш по нормализованной фразе; при ошибке/таймауте — правила.
 const WAIT_MS = Number(process.env.LLM_WAIT_MS || 2500); // сколько гость ждёт модель; дальше — правила, а модель дорабатывает в фоне
@@ -360,7 +363,7 @@ async function mergeLater(key, q, rules) {
       audience: arr('audience'), vibe: arr('vibe'), setting: arr('setting'), activity: arr('activity'),
       intensity: first.intensity || second.intensity, price: rules.price, // цена только из правил: «бесплатно» модели часто мерещится
       times: lead && p.times.length ? p.times : rules.times, weekdays: lead && p.weekdays.length ? p.weekdays : rules.weekdays, // время и день — явные слова, правила надёжнее
-      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, kidAge: rules.kidAge, fixes: rules.fixes, fixed: rules.fixed, dates: rules.dates, pmin: rules.pmin, pmax: rules.pmax, exclude: rules.exclude, segments: rules.segments, adult: rules.adult, group: rules.group, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
+      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, kidAge: rules.kidAge, novelty: rules.novelty, fixes: rules.fixes, fixed: rules.fixed, dates: rules.dates, pmin: rules.pmin, pmax: rules.pmax, exclude: rules.exclude, segments: rules.segments, adult: rules.adult, group: rules.group, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
       soft: lead ? {} : { activity: !rules.activity.length && p.activity.length > 0, vibe: !rules.vibe.length && p.vibe.length > 0, setting: !rules.setting.length && p.setting.length > 0, intensity: !rules.intensity && !!p.intensity, audience: !rules.audience.length && p.audience.length > 0 }, // догадки модели не отсекают события, а только поднимают подходящие
     };
     const usedModel = ['audience', 'vibe', 'setting', 'activity', 'times'].some(k => !rules[k].length && p[k].length) || (!rules.intensity && p.intensity) || p.rest.some(x => !rules.rest.includes(x));

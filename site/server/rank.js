@@ -1,7 +1,7 @@
 // Ранжирование выдачи: релевантность текста, реклама, купленные слова, рейтинг, заполненность, полнота карточки.
 import { stem, tokenize } from './search.js';
 
-export const REASON_LABEL = { clicked: 'Часто выбирают по этому запросу', interest: 'Ваши интересы', promo: 'Реклама', boost: 'Продвижение по запросу', text: 'Совпадение с запросом', rating: 'Высокий рейтинг', popular: 'Быстро заполняется', complete: 'Полная карточка', ai: 'Подходит по смыслу' };
+export const REASON_LABEL = { novel: 'Что-то новое для вас', clicked: 'Часто выбирают по этому запросу', interest: 'Ваши интересы', promo: 'Реклама', boost: 'Продвижение по запросу', text: 'Совпадение с запросом', rating: 'Высокий рейтинг', popular: 'Быстро заполняется', complete: 'Полная карточка', ai: 'Подходит по смыслу' };
 
 export function isPromoted(e, now = new Date()) {
   return !!(e.promotedUntil && new Date(e.promotedUntil) > now);
@@ -21,6 +21,7 @@ export function scoreEvent(e, ctx = {}) {
   if (ctx.aiScores && ctx.aiScores.has(e.id)) { score += Math.round(ctx.aiScores.get(e.id) * 45); reasons.push('ai'); }
   if (ctx.clicks) { const n = ctx.clicks.get(e.seriesKey || `#${e.id}`); if (n) { score += Math.min(20, Math.round(5 * Math.log2(1 + n))); reasons.push('clicked'); } } // по этому запросу сюда уже кликали
   if (ctx.popularity) { const n = ctx.popularity.get(e.seriesKey || `#${e.id}`); if (n) score += Math.min(10, n); } // записи за 7 дней
+  if (ctx.novelty?.has(e.id)) { score += Math.round(ctx.novelty.get(e.id) * 60); reasons.push('novel'); } // «что-нибудь новое»: редкое и невиданное — выше
   if (ctx.interests?.length && ctx.interests.includes(e.category)) { score += 8; reasons.push('interest'); }
   if (e.orgPromoted) { score += 40; reasons.push('promo'); }
   if (e.orgRating) { score += Math.min(10, e.orgRating * 2); if (e.orgRating >= 4.5 && e.orgReviews >= 3) reasons.push('rating'); }

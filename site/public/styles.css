@@ -1098,7 +1098,7 @@ svg { display: block; }
 @media (max-width: 600px) { .type-switch { grid-template-columns: 1fr; } }
 
 /* ---------- Даты на телефоне: лента дней и лист с календарём ---------- */
-.feed-strip { display: none; margin: 4px 0 10px; }
+.feed-strip { display: flex; margin: 0 0 12px; }
 .when-row .chip.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 @media (max-width: 900px) {
   .feed-strip { display: flex; }
@@ -1284,3 +1284,15 @@ svg { display: block; }
 /* «ИИ понял»: исключения и слова для текстового поиска */
 .ai-chip.neg { text-decoration: none; background: var(--surface-2); color: var(--muted); }
 .ai-chip.word { background: transparent; border: 1px dashed var(--line-strong); color: var(--muted); }
+
+/* Экран выдачи: поиск → даты → выдача */
+.feed-search { margin: 4px 0 14px; max-width: none; height: 56px; padding: 0 6px 0 16px; }
+.feed-search input { font-size: 16px; }
+.feed-search .search-filters { display: flex; align-items: center; }
+.feed-search .search-filters .dd-btn { height: 40px; border: 0; background: transparent; color: var(--muted); padding: 0 10px; }
+.feed-search .search-filters .dd-btn.on { color: var(--brand); }
+.feed-search button.go { width: 44px; height: 44px; padding: 0; justify-content: center; font-size: 18px; }
+.day-pill.tool b { font-size: 16px; }
+.only-phone { display: none; }
+@media (min-width: 901px) { .feed-search { display: none; } .feed-layout { margin-top: 8px; } }
+@media (max-width: 900px) { .only-phone { display: grid; } .stage:has(.feed-search) { padding-top: 12px; } }

@@ -296,7 +296,7 @@
   function initNavSearch() {
     renderFilters();
     const f = $('#nav-search'), i = $('#nav-q');
-    i.value = S.q; livePlaceholder(i, 'nav'); attachSuggest(i, f, v => setQuery(v));
+    i.value = S.q; livePlaceholder(i); attachSuggest(i, f, v => setQuery(v));
     f.addEventListener('submit', ev => { ev.preventDefault(); setQuery(i.value); });
     $('.logo').addEventListener('click', ev => { ev.preventDefault(); restart(); });
   }
@@ -369,25 +369,34 @@
   const backBtn = (label, onclick) => el('button', { type: 'button', class: 'back', onclick }, '← ', label);
   const ghost = (emoji, title, desc, onclick) => el('button', { type: 'button', class: 'opt-ghost', onclick }, el('span', { class: 'opt-ico ghost' }, emoji), el('span', { class: 'opt-body' }, el('b', {}, title), el('small', {}, desc)), el('span', { class: 'arrow' }, '→'));
 
-  // Примеры фраз для строки поиска: каждый раз случайный, меняется, пока поле пустое
-  const EXAMPLES = ['хочу сходить познакомиться с девушкой', 'хотим с подружками сходить попеть песни', 'прогуляться с ребёнком в выходные', 'куда пойти одному вечером, спокойно', 'активно провести субботу с друзьями', 'что-то бесплатное и познавательное', 'посмотреть кино с ребёнком днём', 'потанцевать в субботу ночью', 'квиз в четверг вечером', 'йога утром в центре', 'покататься на сапах', 'разговорный английский для новичков', 'стендап на выходных', 'поиграть в настолки с незнакомыми людьми', 'романтический вечер вдвоём', 'лекция про историю Казани', 'куда сходить с коллегами после работы', 'побегать утром в парке'];
-  // Один пример на визит (хранится в sessionStorage), в строке он «набирается» по буквам один раз
-  const EXAMPLE = (() => { try { const v = sessionStorage.getItem('aid_example'); if (v && EXAMPLES.includes(v)) return v; } catch {} const x = EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]; try { sessionStorage.setItem('aid_example', x); } catch {} return x; })();
-  const randomExample = () => EXAMPLE;
-  const typedOnce = new Set();
-  function livePlaceholder(input, key) {
-    const full = EXAMPLE;
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce || input.value || (key && typedOnce.has(key))) { input.placeholder = full; return input; }
-    if (key) typedOnce.add(key);
-    input.placeholder = '';
+  // Примеры фраз для строки поиска: каждые 7 секунд набирается новый, во всех строках поиска одновременно.
+  // Пока человек печатает или поле в фокусе, подсказка не меняется.
+  const EXAMPLES = ['хочу сходить познакомиться с девушкой', 'хотим с подружками сходить попеть песни', 'прогуляться с ребёнком в выходные', 'куда пойти одному вечером, спокойно', 'лазертаг с друзьями в субботу', 'что-то бесплатное сегодня', 'кино с ребёнком днём', 'квиз в четверг в 7 вечера', 'йога утром в центре', 'покататься на сапах', 'спектакль для детей в воскресенье', 'стендап до 1000 рублей', 'настолки с незнакомыми людьми', 'романтический вечер вдвоём', 'куда сходить с коллегами после работы', 'боулинг на следующих выходных', 'что-нибудь кроме кино завтра вечером', 'мастер-класс для ребёнка 6 лет'];
+  const ROTATE_MS = 7000;
+  let exIdx = Math.floor(Math.random() * EXAMPLES.length);
+  const exInputs = new Set();
+  const currentExample = () => EXAMPLES[exIdx];
+  const randomExample = currentExample;
+  function typeInto(input, text) {
+    clearInterval(input._typing);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { input.placeholder = text; return; }
     let i = 0;
-    const t = setInterval(() => {
-      if (!input.isConnected) return clearInterval(t);
-      if (input.value) { input.placeholder = full; return clearInterval(t); }
-      i++; input.placeholder = full.slice(0, i) + (i < full.length ? '|' : '');
-      if (i >= full.length) clearInterval(t);
-    }, 42);
+    input._typing = setInterval(() => {
+      if (!input.isConnected || input.value) { clearInterval(input._typing); input.placeholder = text; return; }
+      i++; input.placeholder = text.slice(0, i) + (i < text.length ? '|' : '');
+      if (i >= text.length) clearInterval(input._typing);
+    }, 38);
+  }
+  setInterval(() => {
+    for (const inp of [...exInputs]) if (!inp.isConnected) exInputs.delete(inp);
+    const idle = [...exInputs].filter(inp => !inp.value && document.activeElement !== inp);
+    if (!idle.length || document.hidden) return;
+    exIdx = (exIdx + 1) % EXAMPLES.length;
+    for (const inp of idle) typeInto(inp, currentExample());
+  }, ROTATE_MS);
+  function livePlaceholder(input) {
+    exInputs.add(input);
+    if (input.value) input.placeholder = currentExample(); else typeInto(input, currentExample());
     return input;
   }
   // Подборки «с кем» и разделы по интересам: плитки как в Spotify — нажал, под рядом раскрылись блоки «Все» + уточнения
@@ -446,8 +455,7 @@
   function screenWhat(p) {
     // 1. Поиск — первая точка входа
     const q = livePlaceholder(el('input', { type: 'search', placeholder: 'Кино, пробежка, квиз, английский…', value: S.q, 'aria-label': 'Поиск событий', enterkeyhint: 'search', autocomplete: 'off' }));
-    const example = randomExample();
-    const useExample = () => { q.value = example; $('#nav-q').value = example; (window.innerWidth > 900 ? $('#nav-q') : q).focus(); toast('Нажмите «Найти»'); };
+
     const heroForm = el('form', { class: 'hero-search', role: 'search', onsubmit: ev => { ev.preventDefault(); setQuery(q.value); } },
         el('span', { class: 'ico', html: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' }),
         q,
@@ -460,7 +468,7 @@
 
     // 2. С кем и что: плитки раскрываются списком блоков (как жанры в Spotify)
     const cats = el('section', { class: 'entry-block' },
-      el('div', { class: 'entry-head' }, el('h2', {}, 'Или выберите, с кем и что'), el('span', { class: 'meta' }, 'нажмите плитку — раскроем, что внутри')),
+      el('div', { class: 'entry-head' }, el('h2', {}, 'Знаем, чем вам заняться'), el('p', { class: 'meta' }, 'Выберите, с кем идёте или что любите, — покажем варианты. А можно просто написать своими словами в строке поиска сверху.')),
       browseGrid(),
       ghost('✨', 'Подобрать по настроению', 'Спокойно, активно или сюрприз — три варианта за 10 секунд', () => go('mood')));
 
@@ -800,7 +808,8 @@
     S.days = data.days;
     if (data.ai?.when && data.ai.dates) { // фраза задала даты — показываем это в кнопках периода
       const w = data.ai.when === 'dayafter' ? 'date' : data.ai.when;
-      if (S.when !== w || (w === 'date' && S.date !== data.ai.dates.from)) { S.when = w; if (w === 'date') S.date = data.ai.dates.from; persist(); renderQuick(); if (H.cal?.isConnected) H.cal.replaceWith(freshCal()); }
+      const changed = S.when !== w || (w === 'date' && S.date !== data.ai.dates.from) || (w === 'range' && (S.from !== data.ai.dates.from || S.to !== data.ai.dates.to));
+      if (changed) { S.when = w; if (w === 'date') S.date = data.ai.dates.from; if (w === 'range') { S.from = data.ai.dates.from; S.to = data.ai.dates.to; } persist(); renderQuick(); if (H.cal?.isConnected) H.cal.replaceWith(freshCal()); }
     }
     paintStrip();
     if (H.cal?.isConnected) H.cal.replaceWith(freshCal()); // обновляем только календарь
@@ -825,7 +834,7 @@
     const list = data.events, n = list.length;
     const shown = S.when === 'any' ? new Set(list.map(e => e.seriesKey || 'e' + e.id)).size : [...new Set(list.map(e => e.seriesKey && SLOTTED.has(e.kind) ? `${e.date}:${e.seriesKey}` : String(e.id)))].length;
     box.append(el('div', { class: 'feed-title' }, el('h2', {}, whenTitle()), el('span', { class: 'meta' }, `${shown} ${plural(shown, ['событие', 'события', 'событий'])}`)));
-    if (data.ai) box.append(el('div', { class: 'ai-strip' }, el('b', {}, '✨ ИИ понял:'), ...data.ai.human.map(h => el('span', { class: 'ai-chip' }, h)), data.ai.fallback ? el('span', { class: 'meta' }, '— по смыслу ничего не нашлось, показываем по словам') : null, el('span', { class: 'meta ai-src', title: 'Кто разобрал запрос' }, data.ai.source && data.ai.source.startsWith('llm:') ? `модель ${data.ai.source.slice(4)}` : data.ai.pending ? 'правила · модель уточняет' : 'правила, без модели'), el('button', { type: 'button', class: 'step-link', onclick: () => { S.ai = false; S.aiOff = true; persist(); fetchFeed(); } }, 'обычный поиск')));
+    if (data.ai) box.append(el('div', { class: 'ai-strip' }, el('b', {}, '✨ ИИ понял:'), ...data.ai.human.map(h => el('span', { class: 'ai-chip' + (/^(без |не |кроме )/.test(h) ? ' neg' : '') }, h)), ...(data.ai.words || []).slice(0, 4).map(w => el('span', { class: 'ai-chip word', title: 'Искали по слову в названии и описании' }, `«${w}…»`)), data.ai.fallback ? el('span', { class: 'meta' }, '— по смыслу ничего не нашлось, показываем по словам') : null, el('span', { class: 'meta ai-src', title: 'Кто разобрал запрос' }, data.ai.source && data.ai.source.startsWith('llm:') ? `модель ${data.ai.source.slice(4)}` : data.ai.pending ? 'правила · модель уточняет' : 'правила, без модели'), el('button', { type: 'button', class: 'step-link', onclick: () => { S.ai = false; S.aiOff = true; persist(); fetchFeed(); } }, 'обычный поиск')));
     if (data.corrected) box.append(el('div', { class: 'corrected' }, '🔎 Возможно, вы имели в виду', el('button', { type: 'button', onclick: () => setQuery(data.corrected) }, data.corrected), n ? el('span', {}, '— показали результаты по исправленному запросу') : null));
     if (n >= 4) {
       const picked = [], subs = new Set(), orgs = new Set();

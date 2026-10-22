@@ -9,7 +9,7 @@ import { q, migrate, ensureSeed, ensureOrganizer, insertEvent, slugify, DATABASE
 import { search, buildDoc, buildVocab, buildIdf, tokenize, stem, normalize } from './search.js';
 import { diversifyByDay, rankList, isPromoted } from './rank.js';
 import { ORG_KINDS, PROMO_PRODUCTS, DEMO_BALANCE } from './orgkinds.js';
-import { ACTIVITIES, ACT_GROUPS, detectActs, buildFacets } from './facets.js';
+import { ACTIVITIES, ACT_GROUPS, detectActs, buildFacets, actsInText } from './facets.js';
 import { DISTRICTS } from './districts.js';
 import { randomBytes } from 'node:crypto';
 import { tagEvent, parseQuery, parseQuerySmart, tagEventSmart, matchScore, TAG_VERSION, looksLikePhrase } from './ai.js';
@@ -183,7 +183,17 @@ app.get('/api/events', async (req, res, next) => {
     // Жёсткие признаки — из правил; догадки модели (soft) только ранжируют, но не отсекают: «сегодня» не должно превращаться в «D&D сегодня»
     const sf = parsed?.soft || {};
     const tagSignal = !!parsed && !!((!sf.audience && parsed.audience.length) || (!sf.vibe && parsed.vibe.length) || (!sf.setting && parsed.setting.length) || (!sf.activity && parsed.activity.length) || (!sf.intensity && parsed.intensity) || parsed.price || parsed.times.length);
-    const hasSignal = tagSignal || (!!parsed && !!(parsed.weekdays.length || parsed.when || parsed.districts?.length || parsed.hour));
+    const hasSignal = tagSignal || (!!parsed && !!(parsed.weekdays.length || parsed.when || parsed.dates || parsed.districts?.length || parsed.hour || parsed.pmax != null || parsed.pmin != null || parsed.kidAge != null || parsed.exclude?.activity?.length || parsed.exclude?.audience?.length || parsed.exclude?.times?.length));
+    // Условия из фразы, которые отсекают жёстко: даты, цена, исключения («без детей», «кроме кино», «не вечером»)
+    const hardCut = list => {
+      const ex = parsed.exclude || {};
+      if (parsed.pmax != null) list = list.filter(e => e.price <= parsed.pmax);
+      if (parsed.pmin != null) list = list.filter(e => e.price >= parsed.pmin);
+      if (ex.activity?.length) list = list.filter(e => !ex.activity.some(a => (e.acts || []).includes(a) || (e.aiTags?.activity || []).includes(a)));
+      if (ex.audience?.includes('kids')) list = list.filter(e => e.category !== 'kids' && e.sub !== 'kidsclub');
+      if (ex.times?.length) list = list.filter(e => !ex.times.includes(e.aiTags?.time));
+      return list;
+    };
     if (parsed && hasSignal) {
       // Разбираем фразу в признаки, считаем совпадение с тегами события; остаток слов — подсказка, а не фильтр
       aiScores = new Map();
@@ -200,25 +210,33 @@ app.get('/api/events', async (req, res, next) => {
       if (parsed.kidAge != null) found = found.filter(e => e.age <= parsed.kidAge); // «с ребёнком 5 лет» — без 6+ и старше
       if (parsed.price === 'free') found = found.filter(e => e.price === 0);
       if (parsed.weekdays.length) found = found.filter(e => parsed.weekdays.includes(new Date(e.date + 'T12:00:00').getDay()));
-      const dr = parsed.when ? dateRangeFor(parsed.when) : null;
+      const dr = parsed.dates ? { from: parsed.dates.from, to: parsed.dates.to } : parsed.when ? dateRangeFor(parsed.when) : null;
       if (dr) found = found.filter(e => e.date >= dr.from && e.date <= dr.to);
+      found = hardCut(found);
       if (parsed.districts?.length) found = found.filter(e => parsed.districts.includes(e.district));
       if (parsed.hour) { const mm = e => { const d = new Date(e.start); return d.getHours() * 60 + d.getMinutes(); }; found = found.filter(e => (mm(e) >= parsed.hour.from && mm(e) <= parsed.hour.to) || (e.kind === 'open' && String(e.meta?.open_from || '00:00') <= `${String(Math.floor(parsed.hour.to / 60)).padStart(2, '0')}:00` && String(e.meta?.open_to || '23:59') >= `${String(Math.floor(parsed.hour.from / 60)).padStart(2, '0')}:00`)); }
       let fallback = false;
       if (!found.length) { fallbackAi = true; // по смыслу пусто — показываем по словам, чтобы лента не была пустой
-        const r = search(query, docs, vocab); scores = r.hits; corrected = r.corrected; aiScores = null; fallback = true;
+        const negWords = new Set((parsed.segments || []).filter(x => x.neg).flatMap(x => x.text.split(' ')));
+        const fbQuery = query.split(/\s+/).filter(w => !negWords.has(w.toLowerCase().replace(/ё/g, 'е'))).join(' '); // «кроме кино» — не искать «кино»
+        const r = search(fbQuery, docs, vocab); scores = r.hits; corrected = r.corrected; aiScores = null; fallback = true;
         found = pool.filter(e => scores.has(e.id));
+        if (!found.length && !tagSignal) found = pool; // только условия («сегодня, без кино») — вся лента, суженная ими ниже
         if (dr) found = found.filter(e => e.date >= dr.from && e.date <= dr.to); // даты и район из фразы — жёсткие даже при откате на слова
         if (parsed.districts?.length) found = found.filter(e => parsed.districts.includes(e.district));
+        found = hardCut(found);
         if (parsed.times.length) found = found.filter(e => parsed.times.some(t => t === 'weekend' ? true : e.aiTags?.time === t || (e.kind === 'open' && t === openCovers(e)))); // «вечером» не должно превращаться в 10 утра
       }
       pool = found;
-      aiInfo = { parsed: { audience: parsed.audience, vibe: parsed.vibe, setting: parsed.setting, activity: parsed.activity, intensity: parsed.intensity, price: parsed.price, times: parsed.times, weekdays: parsed.weekdays }, human: parsed.human, fallback, source: parsed.source || 'rules', pending: !!parsed.pending, ungroup: !!(parsed.hour || parsed.times.length), when: parsed.when || null, dates: parsed.when ? dateRangeFor(parsed.when) : null, districts: parsed.districts || [] };
+      aiInfo = { parsed: { audience: parsed.audience, vibe: parsed.vibe, setting: parsed.setting, activity: parsed.activity, intensity: parsed.intensity, price: parsed.price, times: parsed.times, weekdays: parsed.weekdays }, human: parsed.human, fallback, source: parsed.source || 'rules', pending: !!parsed.pending, ungroup: !!(parsed.hour || parsed.times.length), when: parsed.when || null, dates: parsed.dates ? { from: parsed.dates.from, to: parsed.dates.to } : parsed.when ? dateRangeFor(parsed.when) : null, districts: parsed.districts || [], words: parsed.restHard || [], segments: parsed.segments || [] };
     } else if (query.trim()) {
       const r = search(query, docs, vocab);
       corrected = r.corrected; scores = r.hits;
       pool = pool.filter(e => scores.has(e.id));
     }
+    // Конкретное занятие в запросе («лазертаг», «волейбол», «картинг») — показываем только его, ничего похожего
+    const qActs = query.trim() ? actsInText(query).filter(a => !(parsed?.exclude?.activity || []).includes(a)) : []; // «кроме кино» — не повод оставлять только кино
+    if (qActs.length) pool = pool.filter(e => (e.acts || []).some(a => qActs.includes(a)));
     if (mood && MOOD[mood]) pool = pool.filter(e => MOOD[mood].has(e.sub));
     if (withWhom === 'kids') pool = pool.filter(e => e.with.includes('kids') && e.age < 16);
     else if (withWhom) pool = pool.filter(e => e.with.includes(withWhom));
@@ -250,7 +268,7 @@ app.get('/api/events', async (req, res, next) => {
     const sig = await getSignals();
     const interests = (await q(`SELECT interests FROM clients WHERE id=$1`, [req.clientId])).rows[0]?.interests || [];
     list = sort === 'time' ? list : rankList(list, { now: new Date(), hits: scores, tokens, aiScores, clicks: sig.clicks.get(normalize(query)) || null, popularity: sig.popularity, interests });
-    if (sort !== 'time' && parsed && !fallbackAi && (parsed.activity.includes('sport') || (!parsed.activity.length && !parsed.restHard?.length))) list = diversifyByDay(list, e => (e.acts || [])[0] || e.sub); // общий запрос («спортом», «с семьёй») — разные виды рядом
+    if (sort !== 'time' && parsed && !fallbackAi && (parsed.activity.includes('sport') || !parsed.activity.length) && !qActs.length) list = diversifyByDay(list, e => (e.acts || [])[0] || e.sub); // общий запрос («спортом», «с семьёй») — разные виды рядом
     if (query.trim()) q(`INSERT INTO search_log(client_id, session_id, query, corrected, results, mode, filters) VALUES($1,$2,$3,$4,$5,$6,$7)`,
       [req.clientId, req.sessionId || null, query.slice(0, 200), corrected, list.length, aiInfo ? 'ai' : 'text', JSON.stringify({ cat, sub, mood, with: withWhom, budget, from, to, ai_source: aiInfo?.source || null, fallback: !!aiInfo?.fallback })]).catch(() => {});
     const limit = Number(req.query.limit) || 0; if (limit > 0) list = list.slice(0, Math.min(limit, 200)); // навык Алисы и виджеты берут только начало выдачи

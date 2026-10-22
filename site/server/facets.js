@@ -29,7 +29,8 @@ export const ACTIVITIES = [
   // Развлечения
   { key: 'vr', cat: 'fun', title: 'VR', emoji: '🥽', terms: ['vr', 'виртуальн', 'кибер'] },
   { key: 'quest', cat: 'fun', title: 'Квесты', emoji: '🔐', terms: ['квест', 'эскейп', 'иммерсив'] },
-  { key: 'lasertag', cat: 'fun', title: 'Лазертаг', emoji: '🔫', terms: ['лазертаг', 'пейнтбол'] },
+  { key: 'lasertag', cat: 'fun', title: 'Лазертаг и пейнтбол', emoji: '🔫', terms: ['лазертаг', 'пейнтбол', 'страйкбол'] },
+  { key: 'ropepark', cat: 'fun', title: 'Верёвочный парк', emoji: '🌲', terms: ['веревочн', 'верёвочн'] },
   { key: 'trampoline', cat: 'fun', title: 'Батуты', emoji: '🤸', terms: ['батут'] },
   { key: 'bowling', cat: 'fun', title: 'Боулинг', emoji: '🎳', terms: ['боулинг', 'бильярд'] },
   { key: 'karting', cat: 'fun', title: 'Картинг', emoji: '🏎️', terms: ['картинг'] },
@@ -68,6 +69,17 @@ export const ACT_GROUPS = { ball: { title: 'Игры с мячом', keys: ['foo
 const SUB_DEFAULT = { run: 'run', yoga: 'yoga', skate: 'skate', climb: 'climb', quiz: 'quiz', board: 'board', chess: 'chess', mafia: 'mafia', concert: 'concert', jazz: 'jazz', party: 'party', classical: 'classical', market: 'vinyl', cinema: 'cinema', theatre: 'theatre', standup: 'standup', exhibition: 'exhibition', tour: 'tour', lecture: 'lecture', it: 'it', book: 'book', workshop: 'workshop', stol: 'stol', dating: 'dating', networking: 'networking', newcomers: 'newcomers' };
 const byKey = Object.fromEntries(ACTIVITIES.map(a => [a.key, a]));
 
+// Виды занятий, прямо названные в запросе гостя: «лазертаг», «волейбол», «картинг».
+// Короткие термины (до 4 букв) — только с начала слова, чтобы «сап» не находился в «сапогах».
+// Общие слова («свидание», «ужин», «прогулка», «знакомства») сюда не входят: это настроение или формат, а не конкретное занятие.
+const LOOSE = new Set(['stol', 'dating', 'networking', 'newcomers', 'walk', 'tour', 'lang', 'book', 'market']);
+export function actsInText(q) {
+  const text = ' ' + normalize(q || '') + ' ';
+  const hitTerm = t => t.length > 4 ? text.includes(t) : new RegExp(`[^а-яёa-z0-9]${t}`).test(text);
+  const out = ACTIVITIES.filter(a => !LOOSE.has(a.key) && a.terms.some(hitTerm)).map(a => a.key);
+  // «сап» — только сами сапы (сап, сапы, сапах, на сапе), а не «сапоги» или «сапёр»
+  return out.filter(k => k !== 'sup' || /[^а-яёa-z](sup|сап(ы|ах|ам|е|ом|ов|а)?)[^а-яёa-z]/.test(text));
+}
 export function detectActs(e) {
   const text = ' ' + normalize([e.title, ...(e.keywords || []), ...(e.tags || [])].join(' ')) + ' '; // ключевые слова подкатегории не берём: у «командных» они перечисляют все виды сразу
   const out = new Set();

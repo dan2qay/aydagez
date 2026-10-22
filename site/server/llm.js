@@ -23,16 +23,21 @@ export function llmInfo() {
 }
 
 // Один вызов chat/completions с ответом в JSON. Бросает ошибку при таймауте, не-JSON или кодах ≠ 200.
-export async function chatJson({ model, system, user, timeoutMs = TIMEOUT_WEAK, maxTokens = 500, temperature = 0 }) {
+// schema — JSON-схема ответа: Ollama и OpenAI-совместимые API ограничивают генерацию этой схемой (constrained decoding).
+// Если сервер схему не поддерживает (400), повторяем с обычным JSON-режимом.
+let noSchema = false; // сервер однажды отказался от схемы — дальше не пробуем
+export async function chatJson({ model, system, user, timeoutMs = TIMEOUT_WEAK, maxTokens = 500, temperature = 0, schema = null }) {
   if (!llmEnabled()) throw new Error('llm_disabled');
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), timeoutMs);
   const started = Date.now(); stats.calls++;
   try {
-    const r = await fetch(`${BASE}/chat/completions`, {
+    const send = fmt => fetch(`${BASE}/chat/completions`, {
       method: 'POST', signal: ctrl.signal,
       headers: { 'Content-Type': 'application/json', ...(KEY ? { Authorization: `Bearer ${KEY}` } : {}) },
-      body: JSON.stringify({ model, temperature, max_tokens: maxTokens, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
+      body: JSON.stringify({ model, temperature, max_tokens: maxTokens, response_format: fmt, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] }),
     });
+    let r = await send(schema && !noSchema ? { type: 'json_schema', json_schema: { name: 'answer', schema, strict: true } } : { type: 'json_object' });
+    if (schema && !noSchema && r.status === 400) { noSchema = true; r = await send({ type: 'json_object' }); }
     if (!r.ok) throw new Error(`llm_http_${r.status}`);
     const data = await r.json();
     let content = data?.choices?.[0]?.message?.content ?? '';

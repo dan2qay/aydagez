@@ -11,7 +11,7 @@
   .only-mobile { display: grid !important; }
   html { -webkit-text-size-adjust: 100%; }
   html, body { overflow-x: hidden; overscroll-behavior-x: none; }
-  .wrap { padding: 0 20px; }
+  .wrap { padding-left: 20px; padding-right: 20px; } /* только бока: иначе обнуляется нижний отступ страниц перед подвалом */
   input[type=search] { -webkit-appearance: none; appearance: none; }
   body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .nav-inner { height: 60px; gap: 8px; }

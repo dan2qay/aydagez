@@ -20,12 +20,12 @@ if (args.has('--dataset')) {
 }
 
 const sub = (want, got) => (want || []).every(x => (got || []).includes(x));
-function diff(expect, p, activityOnly) {
+// Подмножество: массивы — «содержит», объекты — по своим ключам, остальное — равенство
+const fits = (want, got) => Array.isArray(want) ? sub(want, got) : want && typeof want === 'object' ? !!got && Object.entries(want).every(([k, v]) => fits(v, got[k])) : got === want;
+function diff(expect, p, activityOnly, not) {
   const bad = [];
-  for (const [k, v] of Object.entries(expect)) {
-    if (Array.isArray(v)) { if (!sub(v, p[k])) bad.push(`${k}: ждали ${JSON.stringify(v)}, разобрано ${JSON.stringify(p[k] || [])}`); }
-    else if (p[k] !== v) bad.push(`${k}: ждали ${JSON.stringify(v)}, разобрано ${JSON.stringify(p[k] ?? null)}`);
-  }
+  for (const [k, v] of Object.entries(expect)) if (!fits(v, p[k])) bad.push(`${k}: ждали ${JSON.stringify(v)}, разобрано ${JSON.stringify(p[k] ?? null)}`);
+  for (const [k, v] of Object.entries(not || {})) for (const x of v) if ((p[k] || []).includes(x)) bad.push(`${k}: лишнее ${JSON.stringify(x)}`);
   if (activityOnly && expect.activity && p.activity.some(a => !expect.activity.includes(a))) bad.push(`лишние занятия: ${JSON.stringify(p.activity.filter(a => !expect.activity.includes(a)))}`);
   return bad;
 }
@@ -36,8 +36,8 @@ async function settled(q) { // дождаться ответа модели (р�
 async function apiCheck(s) {
   const bad = [];
   let d; try { d = await (await fetch(`${base}/api/events?when=any&q=${encodeURIComponent(s.q)}`)).json(); } catch { return ['сервер недоступен']; }
-  const top = d.events.slice(0, 12);
-  if (!d.events.length) bad.push('пустая выдача');
+  const seenS = new Set(); const top = d.events.filter(e => { const k = e.seriesKey || e.id; if (seenS.has(k)) return false; seenS.add(k); return true; }).slice(0, 12); // как в ленте: серия — одна карточка
+  if (!d.events.length && !s.check?.allowEmpty) bad.push('пустая выдача');
   if (s.check?.allAct) { const miss = d.events.filter(e => !(e.acts || []).includes(s.check.allAct) && !(e.aiTags?.activity || []).includes(s.check.allAct)); if (miss.length) bad.push(`не ${s.check.allAct}: ${[...new Set(miss.map(e => e.title))].slice(0, 3).join(' | ')}`); }
   if (s.check?.diverse) { const kinds = new Set(top.map(e => (e.acts || [])[0] || e.sub)); if (kinds.size < s.check.diverse) bad.push(`мало разных видов в топе: ${[...kinds].join(',')}`); }
   return bad;
@@ -48,9 +48,9 @@ const useModel = args.has('--model') && llmEnabled();
 if (args.has('--model') && !llmEnabled()) console.log('модель не настроена (LLM_BASE_URL), проверяю только правила');
 for (const s of SCENARIOS) {
   const rules = parseQuery(s.q);
-  const r = diff(s.expect, rules, s.activityOnly);
+  const r = diff(s.expect, rules, s.activityOnly, s.not);
   let m = null, a = null;
-  if (useModel) { const p = await settled(s.q); m = { bad: diff(s.expect, p, s.activityOnly), src: p.source, human: p.human }; }
+  if (useModel) { const p = await settled(s.q); m = { bad: diff(s.expect, p, s.activityOnly, s.not), src: p.source, human: p.human }; }
   if (args.has('--api')) a = await apiCheck(s);
   const ok = !r.length && !(a && a.length);
   if (!ok) fails++;

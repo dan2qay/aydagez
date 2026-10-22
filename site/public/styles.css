@@ -57,8 +57,8 @@ input, select, textarea { font: inherit; color: inherit; }
 h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
 p { margin: 0; }
 svg { display: block; }
-.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-@media (max-width: 640px) { .wrap { padding: 0 16px; } }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+@media (max-width: 640px) { .wrap { padding-left: 16px; padding-right: 16px; } }
 [hidden] { display: none !important; }
 :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; border-radius: 4px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
@@ -285,7 +285,7 @@ svg { display: block; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
 /* ---------- Страница события / организатора ---------- */
-.page { padding: 20px 0 80px; }
+.page { padding-top: 20px; padding-bottom: 80px; } /* бока задаёт .wrap */
 .page-narrow { max-width: 980px; }
 .back { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 500; font-size: 14px; height: 36px; padding: 0 10px 0 6px; border-radius: 999px; margin-left: -6px; transition: background var(--t), color var(--t); }
 .back:hover { background: var(--hover); color: var(--fg); }
@@ -579,7 +579,8 @@ svg { display: block; }
 .entry-block { margin-top: 40px; }
 .entry-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .entry-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
-.entry-head .meta { color: var(--muted); font-size: 14px; }
+.entry-head .meta { color: var(--muted); font-size: 14px; margin: 0; }
+.entry-head p.meta { flex-basis: 100%; }
 .entry-block .opts { margin-top: 16px; }
 .org-promo { margin-top: 44px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding: 28px; border-radius: 20px; background: var(--ink); color: var(--on-ink); position: relative; overflow: hidden; }
 .org-promo::after { content: ''; position: absolute; right: -80px; top: -80px; width: 280px; height: 280px; border-radius: 50%; background: var(--brand-grad); opacity: .35; filter: blur(40px); pointer-events: none; }
@@ -896,7 +897,8 @@ svg { display: block; }
 /* Строка поиска всегда в шапке; на широком экране большая строка на главной не дублируется */
 .only-narrow { display: none; }
 @media (max-width: 900px) { .only-wide { display: none; } .only-narrow { display: inline; } }
-@media (min-width: 901px) { .hero-search { display: none; } .hero .hints { margin-top: 18px; } }
+/* Компьютер: большой блок «Куда сходить» не нужен — строка поиска в шапке, сразу под ней категории */
+@media (min-width: 901px) { .hero { display: none; } .hero + .entry-block { margin-top: 0; } }
 .example-link { color: var(--brand); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; transition: color var(--t); }
 .example-link:hover { color: var(--brand-hover); }
 
@@ -1279,3 +1281,6 @@ svg { display: block; }
   .hints.when-row { justify-content: center; }
   .entry-head { justify-content: center; text-align: center; }
 }
+/* «ИИ понял»: исключения и слова для текстового поиска */
+.ai-chip.neg { text-decoration: none; background: var(--surface-2); color: var(--muted); }
+.ai-chip.word { background: transparent; border: 1px dashed var(--line-strong); color: var(--muted); }

@@ -64,19 +64,46 @@ export const SCENARIOS = [
 
   // --- деньги, даты, место ---
   { q: 'что-то бесплатное сегодня', expect: { price: 'free', when: 'today' }, keywords: [] },
-  { q: 'недорого погулять в выходные', expect: { price: 'free', activity: ['walk'], when: 'weekend' }, keywords: ['прогулка'] },
+  { q: 'недорого погулять в выходные', expect: { pmax: 700, activity: ['walk'], when: 'weekend' }, keywords: ['прогулка'] },
   { q: 'в центре вечером', expect: { districts: ['Вахитовский'], times: ['evening'] }, keywords: [] },
   { q: 'на свежем воздухе в субботу утром', expect: { setting: ['outdoor'], weekdays: [6], times: ['morning'] }, keywords: ['прогулка', 'пробежка'] },
   { q: 'дождь, хочется куда-то в помещение', expect: { setting: ['indoor'] }, keywords: ['музей', 'кино'], check: { diverse: 3 } },
   { q: 'выучить английский в разговорном клубе', expect: { activity: ['lang'] }, keywords: ['английский'] },
 
+  // --- грамматика: время, даты, цена, отрицания, компания ---
+  { q: 'квиз в 7 вечера', expect: { activity: ['quiz'], hour: { from: 1080, to: 1230 } }, keywords: ['квиз'], note: '«7 вечера» — 19:00' },
+  { q: 'кино в 19:30', expect: { activity: ['cinema'], hour: { from: 1110, to: 1260 } }, keywords: ['кино'] },
+  { q: 'в 2 дня с ребёнком', expect: { audience: ['kids'], hour: { from: 780 } }, keywords: [] },
+  { q: 'к восьми на стендап', expect: { activity: ['standup'], hour: { from: 1140 } }, keywords: ['стендап'], note: 'вечерний формат: «к восьми» — 20:00' },
+  { q: 'погулять с 15 до 18', expect: { activity: ['walk'], hour: { from: 900, to: 1080 } }, keywords: ['прогулка'] },
+  { q: 'концерт до 1000 рублей', expect: { activity: ['concert'], pmax: 1000 }, keywords: ['концерт'] },
+  { q: 'театр от 500 до 1500 руб', expect: { activity: ['theatre'], pmin: 500, pmax: 1500 }, keywords: ['театр'] },
+  { q: 'дешевле 300 в выходные', expect: { pmax: 300, when: 'weekend' }, keywords: [] },
+  { q: 'выставка 25.10', expect: { activity: ['exhibition'], dates: { label: '25 октября' } }, keywords: ['выставка'] },
+  { q: 'куда сходить 25 октября вечером', expect: { dates: { label: '25 октября' }, times: ['evening'] }, keywords: [] },
+  { q: 'в следующие выходные с детьми', expect: { audience: ['kids'], dates: { label: 'в следующие выходные' } }, keywords: [] },
+  { q: 'квиз через неделю', expect: { activity: ['quiz'], when: 'range' }, keywords: ['квиз'] },
+  { q: 'концерт в ноябре', expect: { activity: ['concert'], dates: { label: 'в ноябре' } }, keywords: ['концерт'] },
+  { q: 'сегодня или завтра', expect: { when: 'range' }, keywords: [] },
+  { q: 'вечеринка в субботу', expect: { activity: ['party'], weekdays: [6] }, not: { times: ['evening'] }, keywords: ['вечеринка'], note: '«вечеринка» — не «вечер»' },
+  { q: 'не шумно посидеть с друзьями', expect: { noise: 'quiet', audience: ['friends'] }, keywords: [] },
+  { q: 'куда-нибудь без детей вечером', expect: { exclude: { audience: ['kids'] }, times: ['evening'] }, not: { audience: ['kids'] }, keywords: [] },
+  { q: 'всё кроме кино сегодня', expect: { exclude: { activity: ['cinema'] }, when: 'today' }, not: { activity: ['cinema'] }, keywords: [] },
+  { q: 'нас 6 человек в 20', expect: { group: 6, hour: { from: 1140 } }, keywords: [], note: '«6 человек» — не время' },
+  { q: 'кружок для ребёнку 7 лет', expect: { kidAge: 7, audience: ['kids'] }, keywords: ['кружок'] },
+  { q: 'боулинг на 2 часа', expect: { activity: ['bowling'], hour: null }, keywords: ['боулинг'], note: '«на 2 часа» — длительность, не время' },
+  { q: 'новые сапоги', expect: {}, not: { activity: ['sup', 'water'] }, keywords: [], check: { allowEmpty: true }, note: 'сапог в афише нет — пустая выдача честнее, чем сапы' },
+
   // --- развлечения: VR, квесты, батуты, цирк, теплоход ---
   { q: 'поиграть в vr с друзьями', expect: { activity: ['vr'], audience: ['friends'] }, activityOnly: true, keywords: ['vr'], check: { allAct: 'vr' } },
   { q: 'сходить на квест компанией', expect: { activity: ['quest'], audience: ['friends'] }, keywords: ['квест'] },
-  { q: 'куда сводить ребёнка попрыгать на батутах', expect: { activity: ['park'], audience: ['kids'] }, keywords: ['батуты'] },
+  { q: 'куда сводить ребёнка попрыгать на батутах', expect: { activity: ['trampoline'], audience: ['kids'] }, keywords: ['батуты'] },
   { q: 'в цирк с детьми в выходные', expect: { activity: ['circus'], audience: ['kids'], when: 'weekend' }, activityOnly: true, keywords: ['цирк'] },
   { q: 'покататься на теплоходе по казанке', expect: { activity: ['boat'], setting: ['water'] }, keywords: ['теплоход'] },
   { q: 'боулинг с коллегами вечером', expect: { activity: ['bowling'], audience: ['friends'], times: ['evening'] }, activityOnly: true, keywords: ['боулинг'] },
+  { q: 'лазертаг', expect: { activity: ['lasertag'] }, activityOnly: true, keywords: ['лазертаг'], check: { allAct: 'lasertag' }, note: 'только лазертаг, не батуты и не океанариум' },
+  { q: 'картинг с друзьями', expect: { activity: ['karting'], audience: ['friends'] }, activityOnly: true, keywords: ['картинг'], check: { allAct: 'karting' }, note: '«картин» внутри «картинг» — не выставка' },
+  { q: 'попрыгать на батутах с ребёнком', expect: { activity: ['trampoline'], audience: ['kids'] }, activityOnly: true, keywords: ['батуты'], check: { allAct: 'trampoline' } },
   { q: 'посидеть в антикафе одному', expect: { activity: ['anticafe'], audience: ['solo'], vibe: ['calm'] }, keywords: ['антикафе'] },
 ];
 

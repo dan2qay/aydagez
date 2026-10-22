@@ -17,7 +17,7 @@
     return n;
   };
   const api = async (path, opts = {}) => {
-    const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    const r = await fetch(path, { credentials: 'same-origin', ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }, body: opts.body ? JSON.stringify(opts.body) : undefined });
     if (!r.ok) throw Object.assign(new Error('api'), { status: r.status, body: await r.json().catch(() => ({})) });
     return r.json();
   };
@@ -38,7 +38,7 @@
   const LANGS = { ru: 'На русском', tt: 'На татарском', en: 'На английском' };
   const WITH = [['solo', 'Один'], ['duo', 'Вдвоём'], ['friends', 'С друзьями'], ['kids', 'С детьми']];
   const BUDGET = [['0', 'Бесплатно'], ['500', 'До 500 ₽'], ['1500', 'До 1 500 ₽']];
-  const CAT_GRAD = { fun: 'linear-gradient(135deg,#f43f5e,#8b5cf6)', sport: 'linear-gradient(135deg,#0ea5e9,#22c55e)', games: 'linear-gradient(135deg,#f59e0b,#ef4444)', social: 'linear-gradient(135deg,#8b5cf6,#ec4899)', music: 'linear-gradient(135deg,#4f46e5,#06b6d4)', knowledge: 'linear-gradient(135deg,#f97316,#facc15)', culture: 'linear-gradient(135deg,#e11d48,#7c3aed)' };
+  const CAT_GRAD = { kids: 'linear-gradient(135deg,#fb7185,#f59e0b)', fun: 'linear-gradient(135deg,#f43f5e,#8b5cf6)', sport: 'linear-gradient(135deg,#0ea5e9,#22c55e)', games: 'linear-gradient(135deg,#f59e0b,#ef4444)', social: 'linear-gradient(135deg,#8b5cf6,#ec4899)', music: 'linear-gradient(135deg,#4f46e5,#06b6d4)', knowledge: 'linear-gradient(135deg,#f97316,#facc15)', culture: 'linear-gradient(135deg,#e11d48,#7c3aed)' };
   const MOODS = [
     { key: 'calm', emoji: '🧘', title: 'Что-то спокойное', desc: 'лекции, кино, театр, настолки, джаз, выставки' },
     { key: 'active', emoji: '⚡', title: 'Что-то активное', desc: 'пробежки, квизы, вечеринки, стендап, знакомства' },
@@ -80,11 +80,11 @@
     screen: saved.screen === 'search' ? 'what' : (saved.screen || 'what'),            // what | sub | mood | when | results
     q: saved.q || '', cat: saved.cat || null, sub: saved.sub || null, mood: saved.mood || null,
     when: saved.when || 'today', date: saved.date || iso(today), from: saved.from || null, to: saved.to || null, // today | tomorrow | week | weekend | date | range | any
-    withWhom: saved.withWhom || '', budget: saved.budget || '', cats: Array.isArray(saved.cats) ? saved.cats : [], via: saved.via || 'flow', ai: !!saved.ai, aiOff: !!saved.aiOff, tod: saved.tod || '', noise: saved.noise || '', subs: Array.isArray(saved.subs) ? saved.subs : [], acts: Array.isArray(saved.acts) ? saved.acts : [], districts: Array.isArray(saved.districts) ? saved.districts : [], pmin: saved.pmin ?? '', pmax: saved.pmax ?? (saved.budget !== undefined && saved.budget !== '' ? saved.budget : ''),
+    withWhom: saved.withWhom || '', budget: saved.budget || '', cats: Array.isArray(saved.cats) ? saved.cats : [], via: saved.via || 'flow', ai: !!saved.ai, aiOff: !!saved.aiOff, tod: saved.tod || '', noise: saved.noise || '', subs: Array.isArray(saved.subs) ? saved.subs : [], acts: Array.isArray(saved.acts) ? saved.acts : [], districts: Array.isArray(saved.districts) ? saved.districts : [], kidAge: saved.kidAge ?? '', pmin: saved.pmin ?? '', pmax: saved.pmax ?? (saved.budget !== undefined && saved.budget !== '' ? saved.budget : ''),
     calOpen: false, calY: today.getFullYear(), calM: today.getMonth(),
     days: {},
   };
-  const persist = () => store.set('aidaem_flow', { screen: S.screen, q: S.q, cat: S.cat, sub: S.sub, mood: S.mood, when: S.when, date: S.date, from: S.from, to: S.to, withWhom: S.withWhom, budget: S.budget, cats: S.cats, via: S.via, ai: S.ai, aiOff: S.aiOff, tod: S.tod, noise: S.noise, subs: S.subs, acts: S.acts, pmin: S.pmin, pmax: S.pmax, districts: S.districts });
+  const persist = () => store.set('aidaem_flow', { screen: S.screen, q: S.q, cat: S.cat, sub: S.sub, mood: S.mood, when: S.when, date: S.date, from: S.from, to: S.to, withWhom: S.withWhom, kidAge: S.kidAge, budget: S.budget, cats: S.cats, via: S.via, ai: S.ai, aiOff: S.aiOff, tod: S.tod, noise: S.noise, subs: S.subs, acts: S.acts, pmin: S.pmin, pmax: S.pmax, districts: S.districts });
   const catOf = k => taxonomy.find(c => c.key === k);
   const subOf = (c, k) => catOf(c)?.subs.find(s => s.key === k);
   const moodOf = k => MOODS.find(m => m.key === k);
@@ -224,7 +224,7 @@
     const paintMood = () => { moodRow.innerHTML = ''; moodRow.append(el('div', { class: 'pills' }, MOODS.filter(m => m.key !== 'open').map(m => chip(draft.mood === m.key, `${m.emoji} ${m.title}`, () => { draft.mood = draft.mood === m.key ? null : m.key; change(); }, null)))); };
     const withRow = el('div', {}), todRow = el('div', {}), noiseRow = el('div', {}), distRow = el('div', {});
     const paintDist = () => { distRow.innerHTML = ''; distRow.append(el('div', { class: 'pills' }, (taxonomy.districts || []).map(d => chip(draft.districts.includes(d.key), (d.center ? '🏛️ ' : '📍 ') + d.label, () => { draft.districts = draft.districts.includes(d.key) ? draft.districts.filter(k => k !== d.key) : [...draft.districts, d.key]; change(); }, facets?.districts?.[d.key] ?? null)), (taxonomy.districts || []).length ? chip(draft.districts.length === (taxonomy.districts || []).filter(d => !d.center).length && draft.districts.length > 0, '🌆 Не в центре', () => { const outs = (taxonomy.districts || []).filter(d => !d.center).map(d => d.key); const all = outs.every(k => draft.districts.includes(k)); draft.districts = all ? [] : outs; change(); }, null) : null)); };
-    const paint = () => { paintCats(); paintWhen(); paintMood(); paintDist(); withRow.innerHTML = ''; withRow.append(single('withWhom', FILTERS[0].opts, o => `${o[1]} ${o[2]}`)); todRow.innerHTML = ''; todRow.append(single('tod', FILTERS[2].opts, o => `${o[1]} ${o[2]}`)); noiseRow.innerHTML = ''; noiseRow.append(single('noise', FILTERS[3].opts, o => `${o[1]} ${o[2]}`)); };
+    const paint = () => { paintCats(); paintWhen(); paintMood(); paintDist(); withRow.innerHTML = ''; withRow.append(single('withWhom', FILTERS[0].opts, o => `${o[1]} ${o[2]}`)); if (draft.withWhom === 'kids') withRow.append(el('div', { class: 'sub-row' }, el('span', { class: 'hints-label' }, 'Возраст ребёнка:'), el('div', { class: 'pills' }, [['', 'Любой'], [0, 'до 6 лет'], [6, '6–11 лет'], [12, '12–15 лет']].map(([v, t]) => chip(String(draft.kidAge ?? '') === String(v), t, () => { draft.kidAge = v; change(); }, null))))); todRow.innerHTML = ''; todRow.append(single('tod', FILTERS[2].opts, o => `${o[1]} ${o[2]}`)); noiseRow.innerHTML = ''; noiseRow.append(single('noise', FILTERS[3].opts, o => `${o[1]} ${o[2]}`)); };
     paint(); paintPrice();
     box.append(sec('Что интересно', catsBox, 'можно несколько'), sec('Цена за человека', priceBox, 'сколько событий по цене'), sec('Когда', whenRow), sec('Где', distRow, 'районы города: центр или ближе к дому'), sec('С кем идёте', withRow), sec('Время суток', todRow), sec('Атмосфера', noiseRow, 'шумно — музыка и танцы, тихо — поговорить'), sec('Настроение', moodRow));
     return { el: box, setFacets: f => { facets = f; paintCats(); paintPrice(); paintDist(); } };
@@ -232,13 +232,13 @@
   const whenTitleOf = st => { const keep = { when: S.when, date: S.date, from: S.from, to: S.to }; Object.assign(S, { when: st.when, date: st.date, from: st.from, to: st.to }); const t = whenTitle(); Object.assign(S, keep); return t; };
   function filtersModal() {
     const rootM = $('#modal-root'); const close = () => { rootM.innerHTML = ''; };
-    const draft = { q: S.q, ai: S.ai, aiOff: S.aiOff, cat: S.cat, sub: S.sub, cats: [...S.cats], subs: [...S.subs], acts: [...S.acts], districts: [...S.districts], mood: S.mood, withWhom: S.withWhom, pmin: S.pmin, pmax: S.pmax, tod: S.tod, noise: S.noise, when: S.when, date: S.date, from: S.from, to: S.to };
+    const draft = { q: S.q, ai: S.ai, aiOff: S.aiOff, cat: S.cat, sub: S.sub, cats: [...S.cats], subs: [...S.subs], acts: [...S.acts], districts: [...S.districts], mood: S.mood, withWhom: S.withWhom, kidAge: S.kidAge, pmin: S.pmin, pmax: S.pmax, tod: S.tod, noise: S.noise, when: S.when, date: S.date, from: S.from, to: S.to };
     const countBtn = el('button', { type: 'button', class: 'btn btn-primary btn-lg' }, 'Показать события');
     let timer = null;
     const refresh = () => { clearTimeout(timer); timer = setTimeout(async () => { const keep = { when: S.when, date: S.date, from: S.from, to: S.to }; Object.assign(S, { when: draft.when, date: draft.date, from: draft.from, to: draft.to }); const [from, to] = range(); Object.assign(S, keep); try { const d = await api(`/api/events?${params(from, to, draft)}&facets=1`); panel.setFacets(d.facets); const n = d.events.length; countBtn.textContent = n ? `Показать ${n} ${plural(n, ['событие', 'события', 'событий'])}` : 'Ничего не нашли — ослабьте условия'; countBtn.disabled = !n; } catch {} }, 200); };
     const panel = filtersPanel(draft, { onChange: refresh });
     countBtn.addEventListener('click', () => { for (const k of FILTER_KEYS) S[k] = draft[k]; S.cat = draft.cat; S.sub = draft.sub; S.filtersDirty = false; S.budget = ''; persist(); close(); renderFilters(); track('filters_apply', { n: activeFilterCount(S) }); if (H.feed?.isConnected) { renderQuick(); if (H.cal?.isConnected) H.cal.replaceWith(freshCal()); fetchFeed(); } else { S.via = 'search'; if (location.hash && location.hash !== '#/') location.hash = '#/'; go('when'); } });
-    const reset = () => { Object.assign(draft, { cats: [], subs: [], acts: [], districts: [], mood: null, withWhom: '', pmin: '', pmax: '', tod: '', noise: '', when: 'any', cat: null, sub: null }); panel.el.replaceWith((panel = filtersPanel(draft, { onChange: refresh })).el); refresh(); };
+    const reset = () => { Object.assign(draft, { cats: [], subs: [], acts: [], districts: [], mood: null, withWhom: '', kidAge: '', pmin: '', pmax: '', tod: '', noise: '', when: 'any', cat: null, sub: null }); panel.el.replaceWith((panel = filtersPanel(draft, { onChange: refresh })).el); refresh(); };
     rootM.append(el('div', { class: 'modal-bg', onclick: ev => { if (ev.target === ev.currentTarget) close(); } },
       el('div', { class: 'modal modal-wide filters-modal' }, el('div', { class: 'fm-head' }, el('h2', {}, 'Фильтры'), el('button', { type: 'button', class: 'icon-btn', onclick: close }, '✕')),
         el('div', { class: 'fm-body' }, panel.el),
@@ -310,7 +310,7 @@
     go('when');
   }
   function restart() {
-    S.q = ''; S.cat = null; S.sub = null; S.mood = null; S.cats = []; S.via = 'flow'; S.when = 'today'; S.withWhom = ''; S.budget = ''; S.tod = ''; S.noise = ''; S.subs = []; S.acts = []; S.districts = []; S.pmin = ''; S.pmax = ''; S.calOpen = false;
+    S.q = ''; S.cat = null; S.sub = null; S.mood = null; S.cats = []; S.via = 'flow'; S.when = 'today'; S.withWhom = ''; S.kidAge = ''; S.budget = ''; S.tod = ''; S.noise = ''; S.subs = []; S.acts = []; S.districts = []; S.pmin = ''; S.pmax = ''; S.calOpen = false;
     $('#nav-q').value = '';
     renderFilters(); // сброс фильтров виден и в шапке
     go('what');
@@ -392,7 +392,7 @@
   }
   // Подборки «с кем» и разделы по интересам: плитки как в Spotify — нажал, под рядом раскрылись блоки «Все» + уточнения
   const COLLECTIONS = [
-    { key: 'kids', emoji: '👨‍👩‍👧', title: 'С детьми', desc: 'цирк, батуты, детские центры, экскурсии, каток', grad: 'linear-gradient(135deg,#fb7185,#f59e0b)', subs: ['circus', 'kidsclub', 'park', 'tour', 'skate', 'boat', 'theatre', 'workshop', 'exhibition', 'anticafe', 'walk', 'quest'] },
+    { key: 'kids', emoji: '👨‍👩‍👧', title: 'С детьми', desc: 'спектакли, мастер-классы, кружки, цирк, батуты', grad: 'linear-gradient(135deg,#fb7185,#f59e0b)', subs: ['kidstheatre', 'kidsclass', 'kidsedu', 'kidssport', 'kidsshow', 'kidscinema', 'circus', 'kidsclub', 'park', 'boat', 'skate', 'tour'] },
     { key: 'friends', emoji: '🧑‍🤝‍🧑', title: 'С друзьями', desc: 'квизы, VR, квесты, боулинг, вечеринки', grad: 'linear-gradient(135deg,#a855f7,#3b82f6)', subs: ['quiz', 'vr', 'quest', 'bowling', 'park', 'team', 'mafia', 'party', 'concert', 'standup', 'board', 'boat'] },
     { key: 'duo', emoji: '💞', title: 'Вдвоём', desc: 'кино, джаз, театр, теплоход, мастер-классы', grad: 'linear-gradient(135deg,#ec4899,#f43f5e)', subs: ['cinema', 'theatre', 'jazz', 'boat', 'tour', 'exhibition', 'workshop', 'classical', 'quest', 'bowling', 'skate', 'circus'] },
     { key: 'solo', emoji: '🙋', title: 'Одному', desc: 'пробежки, лекции, настолки, новые люди', grad: 'linear-gradient(135deg,#14b8a6,#0ea5e9)', subs: ['run', 'yoga', 'lecture', 'book', 'lang', 'stol', 'newcomers', 'board', 'exhibition', 'anticafe', 'climb', 'cinema'] },
@@ -456,8 +456,7 @@
     const hero = el('section', { class: 'hero' },
       el('h1', { class: 'hero-title' }, 'Куда сходить в Казани?'),
       heroForm,
-      (() => { const row = el('div', { class: 'hints when-row' }); const paint = () => { row.innerHTML = ''; row.append(el('span', { class: 'hints-label' }, 'Когда:'), ...[['today', 'Сегодня'], ['tomorrow', 'Завтра'], ['weekend', 'Выходные'], ['week', 'На неделе'], ['any', 'Все дни']].map(([k, t]) => el('button', { type: 'button', class: 'chip' + (S.when === k ? ' on' : ''), onclick: () => { S.when = k; persist(); paint(); track('when_pick', { when: k, where: 'home' }); } }, t))); }; paint(); return row; })(),
-      el('div', { class: 'hints' }, el('button', { type: 'button', class: 'chip chip-link', onclick: () => filtersModal() }, `⚙️ Фильтры${activeFilterCount(S) ? ' · ' + activeFilterCount(S) : ''}`)));
+      (() => { const row = el('div', { class: 'hints when-row' }); const paint = () => { row.innerHTML = ''; row.append(el('span', { class: 'hints-label' }, 'Когда:'), ...[['today', 'Сегодня'], ['tomorrow', 'Завтра'], ['weekend', 'Выходные'], ['week', 'На неделе'], ['any', 'Все дни']].map(([k, t]) => el('button', { type: 'button', class: 'chip' + (S.when === k ? ' on' : ''), onclick: () => { S.when = k; persist(); paint(); track('when_pick', { when: k, where: 'home' }); } }, t)), el('button', { type: 'button', class: 'chip chip-link', onclick: () => filtersModal() }, `⚙️ Фильтры${activeFilterCount(S) ? ' · ' + activeFilterCount(S) : ''}`)); }; paint(); return row; })());
 
     // 2. С кем и что: плитки раскрываются списком блоков (как жанры в Spotify)
     const cats = el('section', { class: 'entry-block' },
@@ -783,10 +782,10 @@
     const p = new URLSearchParams({ from, to });
     if (st.q) { p.set('q', st.q); p.set('ai', st.aiOff ? '0' : st.ai ? '1' : 'auto'); } if (st.cats.length) p.set('cat', st.cats.join(',')); else if (st.cat) p.set('cat', st.cat);
     if (st.subs?.length) p.set('sub', st.subs.join(',')); else if (st.sub) p.set('sub', st.sub); if (st.acts?.length) p.set('act', st.acts.join(',')); if (st.districts?.length) p.set('district', st.districts.join(',')); if (st.mood) p.set('mood', st.mood);
-    if (st.withWhom) p.set('with', st.withWhom); if (st.pmin !== '' && st.pmin != null) p.set('pmin', st.pmin); if (st.pmax !== '' && st.pmax != null) p.set('pmax', st.pmax); if (st.tod) p.set('tod', st.tod); if (st.noise) p.set('noise', st.noise);
+    if (st.withWhom) p.set('with', st.withWhom); if (st.withWhom === 'kids' && st.kidAge !== '' && st.kidAge != null) p.set('age', st.kidAge); if (st.pmin !== '' && st.pmin != null) p.set('pmin', st.pmin); if (st.pmax !== '' && st.pmax != null) p.set('pmax', st.pmax); if (st.tod) p.set('tod', st.tod); if (st.noise) p.set('noise', st.noise);
     return p;
   }
-  const FILTER_KEYS = ['cats', 'subs', 'acts', 'districts', 'mood', 'withWhom', 'pmin', 'pmax', 'tod', 'noise', 'when', 'date', 'from', 'to'];
+  const FILTER_KEYS = ['cats', 'subs', 'acts', 'districts', 'mood', 'withWhom', 'kidAge', 'pmin', 'pmax', 'tod', 'noise', 'when', 'date', 'from', 'to'];
   const activeFilterCount = st => (st.cats.length || st.cat ? 1 : 0) + (st.subs?.length ? 1 : 0) + (st.acts?.length ? 1 : 0) + (st.districts?.length ? 1 : 0) + (st.mood ? 1 : 0) + (st.withWhom ? 1 : 0) + ((st.pmin !== '' && st.pmin != null) || (st.pmax !== '' && st.pmax != null) ? 1 : 0) + (st.tod ? 1 : 0) + (st.noise ? 1 : 0);
   let reqId = 0;
   async function fetchFeed() {
@@ -808,12 +807,23 @@
     renderFeed(data);
     updateMap(data.events);
   }
+  // В режиме «Все дни» серия (фильм, квиз по вторникам, прокат) показывается один раз — в ближайший день, с пометкой «ещё N дат».
+  // Иначе один фильм с сеансами на 60 дней займёт всю ленту.
+  function collapseSeries(list) {
+    H.moreDates = null;
+    if (S.when !== 'any') return list;
+    const dates = new Map();
+    for (const e of list) if (e.seriesKey) { if (!dates.has(e.seriesKey)) dates.set(e.seriesKey, new Set()); dates.get(e.seriesKey).add(e.date); }
+    const first = new Map([...dates].map(([k, d]) => [k, [...d].sort()[0]]));
+    H.moreDates = new Map([...dates].filter(([, d]) => d.size > 1).map(([k, d]) => { const all = [...d].sort(); return [k, { n: all.length - 1, last: all[all.length - 1] }]; }));
+    return list.filter(e => !e.seriesKey || first.get(e.seriesKey) === e.date);
+  }
   function renderFeed(data) {
     H.feed.classList.remove('loading');
     H.feed.innerHTML = '';
     const box = el('div', { class: 'swap' });
     const list = data.events, n = list.length;
-    const shown = [...new Set(list.map(e => e.seriesKey && SLOTTED.has(e.kind) ? `${e.date}:${e.seriesKey}` : String(e.id)))].length;
+    const shown = S.when === 'any' ? new Set(list.map(e => e.seriesKey || 'e' + e.id)).size : [...new Set(list.map(e => e.seriesKey && SLOTTED.has(e.kind) ? `${e.date}:${e.seriesKey}` : String(e.id)))].length;
     box.append(el('div', { class: 'feed-title' }, el('h2', {}, whenTitle()), el('span', { class: 'meta' }, `${shown} ${plural(shown, ['событие', 'события', 'событий'])}`)));
     if (data.ai) box.append(el('div', { class: 'ai-strip' }, el('b', {}, '✨ ИИ понял:'), ...data.ai.human.map(h => el('span', { class: 'ai-chip' }, h)), data.ai.fallback ? el('span', { class: 'meta' }, '— по смыслу ничего не нашлось, показываем по словам') : null, el('span', { class: 'meta ai-src', title: 'Кто разобрал запрос' }, data.ai.source && data.ai.source.startsWith('llm:') ? `модель ${data.ai.source.slice(4)}` : data.ai.pending ? 'правила · модель уточняет' : 'правила, без модели'), el('button', { type: 'button', class: 'step-link', onclick: () => { S.ai = false; S.aiOff = true; persist(); fetchFeed(); } }, 'обычный поиск')));
     if (data.corrected) box.append(el('div', { class: 'corrected' }, '🔎 Возможно, вы имели в виду', el('button', { type: 'button', onclick: () => setQuery(data.corrected) }, data.corrected), n ? el('span', {}, '— показали результаты по исправленному запросу') : null));
@@ -829,7 +839,7 @@
       box.append(el('div', { class: 'empty' }, el('div', { class: 'e' }, '🫥'), el('b', {}, S.q ? 'Ничего не нашли по этому запросу.' : 'В этот день ничего не нашли.'), el('div', {}, 'Ниже — ближайшее по вашему выбору.'),
         el('div', {}, el('button', { type: 'button', class: 'btn btn-outline', onclick: () => pickWhen('any') }, 'Показать все дни'))));
       if (data.total) { const holder = el('div', {}); box.append(holder); api(`/api/events?${params(iso(today), iso(addDays(today, 45)))}`).then(d => holder.append(timeline(d.events.slice(0, 15)))).catch(() => {}); }
-    } else box.append(timeline(list));
+    } else box.append(timeline(collapseSeries(list)));
     H.feed.append(box);
   }
   // Лента как у Luma: вертикальная линия, точка у каждого дня, компактные карточки
@@ -881,7 +891,7 @@
         el('div', { class: 'fcard-org' }, el('span', { class: 'mini-avatar' }, e0.organizer.name.replace(/^[«"]/, '').charAt(0)), e0.organizer.name),
         el('div', { class: 'fcard-place' }, '📍 ', e0.venue, el('span', { class: 'muted' }, ` · ${e0.district}`)),
         el('div', { class: 'slot-times' }, g.slice(0, 8).map(e => el('a', { class: 'tp' + (e.going >= e.capacity ? ' full' : ''), href: `#/event/${e.slug}`, title: e.going >= e.capacity ? 'Занято' : `Свободно ${e.capacity - e.going}` }, fmtTime(new Date(e.start)))), g.length > 8 ? el('a', { class: 'tp more', href: `#/event/${target}` }, `+${g.length - 8}`) : null),
-        el('div', { class: 'fcard-foot' }, el('span', { class: 'tag ' + (minP === 0 ? 'free' : 'price') }, minP === 0 ? 'Бесплатно' : `от ${fmtPrice(minP)}`), el('span', { class: 'tag' }, `${unit}свободно на ${free.length} из ${g.length}`))),
+        el('div', { class: 'fcard-foot' }, el('span', { class: 'tag ' + (minP === 0 ? 'free' : 'price') }, minP === 0 ? 'Бесплатно' : `от ${fmtPrice(minP)}`), ageTag(e0), el('span', { class: 'tag' }, `${unit}свободно на ${free.length} из ${g.length}`), moreDates(e0))),
       el('a', { class: 'fcard-cover' + (e0.cover ? ' has-img' : ''), href: `#/event/${target}`, style: e0.cover ? `background-image:url(${e0.cover})` : `background:${CAT_GRAD[e0.category]}` }, el('span', {}, e0.emoji)));
   }
   const timeLabel = e => e.kind === 'open' && e.meta?.open_from && e.meta?.open_to ? `${e.meta.open_from}–${e.meta.open_to}` : fmtTime(new Date(e.start));
@@ -893,10 +903,12 @@
         el('div', { class: 'fcard-title' }, e.title),
         el('div', { class: 'fcard-org' }, el('span', { class: 'mini-avatar' }, e.organizer.name.replace(/^[«"]/, '').charAt(0)), e.organizer.name),
         el('div', { class: 'fcard-place' }, '📍 ', e.venue, el('span', { class: 'muted' }, ` · ${distLabel(e.district)}`)),
-        el('div', { class: 'fcard-foot' }, el('span', { class: 'tag ' + (e.price === 0 ? 'free' : 'price') }, fmtPrice(e.price)), e.tags.filter(x => x !== 'бесплатно').slice(0, 2).map(tagEl), e.registered ? el('span', { class: 'tag going' }, '✓ Иду') : null)),
+        el('div', { class: 'fcard-foot' }, el('span', { class: 'tag ' + (e.price === 0 ? 'free' : 'price') }, fmtPrice(e.price)), ageTag(e), e.tags.filter(x => x !== 'бесплатно').slice(0, 2).map(tagEl), moreDates(e), e.registered ? el('span', { class: 'tag going' }, '✓ Иду') : null)),
       el('div', { class: 'fcard-cover' + (e.cover ? ' has-img' : ''), style: e.cover ? `background-image:url(${e.cover})` : `background:${CAT_GRAD[e.category]}` }, el('span', {}, e.emoji)));
   }
   function groups(list) { return timeline(list); }
+  const ageTag = e => el('span', { class: 'tag age' + (e.age >= 16 ? ' adult' : ''), title: 'Возрастная маркировка' }, `${e.age || 0}+`);
+  const moreDates = e => { const m = H.moreDates?.get(e.seriesKey); return m ? el('span', { class: 'tag more' }, `ещё ${m.n} ${plural(m.n, ['дата', 'даты', 'дат'])} до ${fmtDM(parseIso(m.last))}`) : null; };
   const tagEl = t => el('span', { class: 'tag ' + (t === 'можно одному' ? 'solo' : t.startsWith('на ') ? 'lang' : t === 'Пушкинская карта' ? 'pushkin' : t === 'бесплатно' ? 'free' : '') }, t);
   function card(e) {
     const d = parseIso(e.date), t = new Date(e.start);
@@ -908,7 +920,7 @@
         e.promoted ? el('span', { class: 'mine ad' }, 'Реклама') : null,
         el('span', { class: 'e' }, e.emoji)),
       el('div', { class: 'card-body' },
-        el('div', { class: 'card-time' }, `${timeLabel(e)} · ${e.subTitle || e.catTitle}`),
+        el('div', { class: 'card-time' }, `${timeLabel(e)} · ${e.subTitle || e.catTitle} · ${e.age || 0}+`),
         el('div', { class: 'card-title' }, e.title),
         el('div', { class: 'card-place' }, `${e.venue} · ${distLabel(e.district)}`),
         el('div', { class: 'card-foot' },
@@ -940,10 +952,12 @@
             fact('🗓️', fmtLong(d), `${fmtTime(t)}–${fmtTime(end)} · ${dur}`),
             fact('📍', e.venue, `${e.address} · ${e.district} район`),
             fact('💳', fmtPrice(e.price) + (e.price ? ' за человека' : ''), e.price ? 'Итоговая цена, со всеми сборами' : 'Платить ничего не нужно'),
+            fact(e.age >= 16 ? '🔞' : e.with.includes('kids') ? '🧒' : '🏷️', `${e.age || 0}+`, e.age >= 16 ? 'Только для взрослых, детей не пустят' : e.with.includes('kids') ? 'Можно с детьми' : 'Возрастная маркировка'),
             fact('🗣️', LANGS[e.lang], e.lang === 'tt' ? 'Будут подсказки на русском' : e.lang === 'en' ? 'Уровень от B1' : 'Язык события'),
             fact('🎟️', e.registration.type === 'here' ? 'Запись у нас, в один клик' : `Билеты ${e.registration.label}`, e.registration.type === 'here' ? 'Напомним за 24 часа, одно сообщение' : 'Переход на страницу покупки')),
           el('div', { class: 'tagline' }, e.tags.map(tagEl)),
           el('div', { class: 'section' }, el('h3', {}, 'О событии'), renderMarkdown(e.description)),
+          el('div', { class: 'report-link' }, el('button', { type: 'button', class: 'step-link', onclick: () => reportModal(e) }, '⚑ Пожаловаться на событие')),
           e.videoUrl && videoEmbed(e.videoUrl) ? el('div', { class: 'section' }, el('h3', {}, 'Видео'), el('div', { class: 'video-wrap' }, el('iframe', { src: videoEmbed(e.videoUrl), allow: 'autoplay; encrypted-media; fullscreen; picture-in-picture', allowfullscreen: true, loading: 'lazy', referrerpolicy: 'strict-origin-when-cross-origin' }))) : null,
           e.photos?.length ? el('div', { class: 'section' }, el('h3', {}, 'Фото'), gallery(e.photos)) : null,
           e.stol ? el('div', { class: 'section' }, el('div', { class: 'note' }, 'ℹ️', el('span', {}, el('b', {}, 'Это наш формат. '), 'Состав стола подбираем мы, адрес ресторана пришлём за сутки. Только 18+, публичное место, ведущий.'))) : null),
@@ -1001,7 +1015,7 @@
       card.insertBefore(el('div', { class: 'done' }, '✅ Вы записаны' + (e.stol ? ', депозит ждём' : '')), stack);
       stack.append(
         el('button', { type: 'button', class: 'btn btn-outline btn-block', onclick: () => downloadIcs([e], e.slug) }, '📅 Добавить в календарь'),
-        el('button', { type: 'button', class: 'btn btn-outline btn-block', onclick: () => { navigator.clipboard?.writeText(location.href); toast('Ссылка скопирована'); } }, '🔗 Позвать друга'),
+        el('button', { type: 'button', class: 'btn btn-outline btn-block', onclick: () => { navigator.clipboard?.writeText(shareUrl(e)); toast('Ссылка скопирована'); } }, '🔗 Позвать друга'),
         el('button', { type: 'button', class: 'btn btn-outline btn-block', onclick: () => showQr(e) }, '🎫 Мой QR для входа'),
         el('button', { type: 'button', class: 'btn btn-ghost btn-danger btn-block', onclick: () => refresh('DELETE') }, 'Не приду'));
       if (!me?.contact) {
@@ -1213,6 +1227,89 @@
       page.append(el('div', { class: 'empty' }, el('div', { class: 'e' }, '🚫'), el('b', {}, err.body?.message || 'Не удалось подтвердить'), el('div', { style: 'margin-top:10px' }, 'QR должен открыть организатор события со своего телефона, где он вошёл в кабинет.')));
     }
   }
+
+  // ---------- Правила площадки ----------
+  async function renderRules() {
+    const root = $('#app'); root.innerHTML = ''; const rid = routeId;
+    showPlaceholder(root);
+    let text = '';
+    try { text = await (await fetch('/legal/rules.md', { cache: 'no-cache' })).text(); } catch { text = 'Не удалось загрузить правила. Обновите страницу.'; }
+    if (rid !== routeId) return; clearPlaceholder();
+    const body = renderMarkdown(text); body.classList.add('legal');
+    root.append(el('div', { class: 'wrap page page-narrow' }, el('a', { class: 'back', href: '#/' }, '← На главную'), body));
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Аналитика для маркетолога ----------
+  async function renderStats(days = 7) {
+    const root = $('#app'); root.innerHTML = ''; const rid = routeId;
+    showPlaceholder(root);
+    let d;
+    const token = store.get('aidaem_admin', '');
+    try { d = await api(`/api/admin/stats?days=${days}`, { headers: token ? { 'X-Admin-Token': token } : {} }); }
+    catch (err) {
+      if (rid !== routeId) return; clearPlaceholder();
+      const inp = el('input', { class: 'input', type: 'password', placeholder: 'Токен администратора', autocomplete: 'off' });
+      root.append(el('div', { class: 'wrap page page-narrow' }, el('div', { class: 'gate' }, el('div', { class: 'e' }, '📊'), el('h1', {}, 'Аналитика'), el('p', {}, err.body?.message || 'Нужен доступ администратора.'),
+        el('form', { class: 'gate-form', onsubmit: ev => { ev.preventDefault(); store.set('aidaem_admin', inp.value.trim()); renderStats(days); } }, inp, el('button', { type: 'submit', class: 'btn btn-primary' }, 'Открыть')))));
+      return;
+    }
+    if (rid !== routeId) return; clearPlaceholder();
+    const t = d.totals, pct = (a, b) => b ? `${Math.round(a / b * 100)}%` : '—';
+    const tile = (k, v, sub) => el('div', { class: 'stat' }, el('div', { class: 'k' }, k), el('div', { class: 'v big' }, v), sub ? el('div', { class: 'meta' }, sub) : null);
+    const bars = (rows, label, value, extra) => { const max = Math.max(1, ...rows.map(value)); return rows.length ? el('div', { class: 'hbars' }, rows.map(r => el('div', { class: 'bar-row' }, el('span', { class: 'bar-label', title: label(r) }, label(r)), el('span', { class: 'bar-track' }, el('i', { style: `width:${Math.max(2, value(r) / max * 100)}%` })), el('span', { class: 'bar-val' }, value(r), extra ? el('small', {}, extra(r)) : null)))) : el('div', { class: 'empty small' }, 'Пока нет данных за период'); };
+    const block = (title, hint, body) => el('section', { class: 'section stats-block' }, el('h3', {}, title, hint ? el('span', { class: 'meta' }, ` · ${hint}`) : null), body);
+    const f = d.funnel || {};
+    root.append(el('div', { class: 'wrap page' },
+      el('div', { class: 'cab-head' }, el('div', {}, el('h1', {}, 'Аналитика'), el('p', { class: 'lead' }, 'Откуда приходят гости, что ищут и сколько доходит до записи.')),
+        el('div', { class: 'pills' }, [7, 30, 90].map(n => el('button', { type: 'button', class: 'pill' + (n === d.days ? ' on' : ''), onclick: () => renderStats(n) }, `${n} дней`)))),
+      el('div', { class: 'stats stats-4' },
+        tile('Визиты', t.sessions, `${t.visitors} уникальных`), tile('Поиски', t.searches, `ИИ-разбор: ${pct(t.ai_searches, t.searches)}, модель: ${pct(t.model_searches, t.ai_searches)}`),
+        tile('Записи на события', t.registrations, `конверсия визита: ${pct(f.registered || 0, f.visited || 0)}`), tile('Новые аккаунты', t.signups, `через Яндекс/Google: ${t.oauth_logins}`),
+        tile('Из ИИ-ассистентов', d.aiAssist?.sessions || 0, `записались: ${d.aiAssist?.converted || 0}`), tile('Запросы из Алисы', t.alice_requests, 'навык «Айдагез»'),
+        tile('Поиски без результата', t.zero_searches, pct(t.zero_searches, t.searches) + ' от всех'), tile('Жалобы', t.open_reports, 'ждут проверки')),
+      block('Воронка', 'сессии за период', bars([['Зашли', f.visited], ['Искали или выбирали', f.searched], ['Открыли событие', f.viewed], ['Записались', f.registered]].map(([k, v]) => ({ k, v: v || 0 })), r => r.k, r => r.v)),
+      block('По дням', 'визиты · поиски · записи', bars(d.daily, r => r.day, r => r.sessions, r => ` · ${r.searches} · ${r.registrations}`)),
+      el('div', { class: 'grid2 stats-cols' },
+        block('Источники', 'utm_source или сайт-источник', bars(d.sources, r => r.source, r => r.sessions, r => r.converted ? ` · ${r.converted} записались` : '')),
+        block('Кампании (UTM)', 'источник / канал / кампания', bars(d.campaigns, r => [r.source, r.medium, r.campaign].filter(Boolean).join(' / '), r => r.sessions, r => r.converted ? ` · ${r.converted}` : ''))),
+      el('div', { class: 'grid2 stats-cols' },
+        block('Частые запросы', '✨ — разобраны ИИ', bars(d.topQueries, r => (r.ai ? '✨ ' : '') + r.query, r => r.n, r => ` · ${r.results} рез.`)),
+        block('Запросы без результата', 'что добавить в афишу', bars(d.zeroQueries, r => r.query, r => r.n))),
+      el('div', { class: 'grid2 stats-cols' },
+        block('Страницы входа', null, bars(d.landings, r => r.landing || '/', r => r.sessions)),
+        block('Устройства', null, bars(d.devices, r => r.device === 'mobile' ? 'Телефон' : r.device === 'desktop' ? 'Компьютер' : r.device, r => r.sessions))),
+      block('Жалобы', 'открытые', d.reports.length ? el('div', { class: 'report-list' }, d.reports.map(r => el('div', { class: 'report-row' },
+        el('div', {}, el('b', {}, r.reasonTitle), el('div', { class: 'meta' }, r.title ? el('a', { href: `#/event/${r.slug}` }, r.title) : 'событие удалено', ' · ', new Date(r.created_at).toLocaleString('ru-RU')), r.comment ? el('div', { class: 'help' }, r.comment) : null),
+        el('div', { class: 'report-actions' }, el('button', { type: 'button', class: 'btn btn-outline btn-sm', onclick: async () => { await api(`/api/admin/reports/${r.id}/resolve`, { method: 'POST', headers: token ? { 'X-Admin-Token': token } : {}, body: {} }); renderStats(days); } }, 'Всё в порядке'),
+          el('button', { type: 'button', class: 'btn btn-ghost btn-danger btn-sm', onclick: async () => { await api(`/api/admin/reports/${r.id}/resolve`, { method: 'POST', headers: token ? { 'X-Admin-Token': token } : {}, body: { hide: true } }); toast('Событие скрыто'); renderStats(days); } }, 'Скрыть событие'))))) : el('div', { class: 'empty small' }, 'Жалоб нет')),
+      el('p', { class: 'help' }, 'Как размечать ссылки: ?utm_source=vk&utm_medium=post&utm_campaign=autumn. Ссылки из навыка Алисы приходят с utm_source=alice. Ссылка на событие для соцсетей и поисковиков: /e/<адрес события>.')));
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- Жалоба на событие ----------
+  function reportModal(e) {
+    const rootM = $('#modal-root'); const close = () => { rootM.innerHTML = ''; };
+    const reasons = [['illegal', 'Запрещённое или незаконное мероприятие'], ['fraud', 'Мошенничество или подозрительная оплата'], ['adult', '18+ без маркировки или не для детей'], ['wrong', 'Неверная информация: время, место, цена'], ['spam', 'Спам или реклама без пометки'], ['other', 'Другое']];
+    let reason = null;
+    const list = el('div', { class: 'radio-list' }, reasons.map(([k, t]) => el('label', {}, el('input', { type: 'radio', name: 'reason', value: k, onchange: () => { reason = k; } }), t)));
+    const comment = el('textarea', { class: 'input', style: 'height:80px;padding:12px 14px', maxlength: 1000, placeholder: 'Что не так? Необязательно' });
+    rootM.append(el('div', { class: 'modal-bg', onclick: ev => { if (ev.target === ev.currentTarget) close(); } },
+      el('div', { class: 'modal' }, el('h2', {}, 'Пожаловаться на событие'), el('p', {}, 'Проверим в течение рабочего дня. Организатор не узнает, кто пожаловался.'),
+        list, el('div', { class: 'field', style: 'margin-top:12px' }, comment),
+        el('div', { class: 'modal-actions' }, el('button', { type: 'button', class: 'btn btn-ghost', onclick: close }, 'Отмена'),
+          el('button', { type: 'button', class: 'btn btn-primary', onclick: async () => { if (!reason) return toast('Выберите причину'); try { await api(`/api/events/${e.id}/report`, { method: 'POST', body: { reason, comment: comment.value.trim() } }); close(); toast('Спасибо, проверим'); } catch { toast('Не получилось отправить'); } } }, 'Отправить')))));
+  }
+  const shareUrl = e => `${location.origin}/e/${e.slug}`;
+  // Кнопки входа через Яндекс ID, Google и Госуслуги (скоро)
+  function authButtons() {
+    const list = config?.authProviders || [{ key: 'yandex', title: 'Яндекс ID', enabled: false }, { key: 'google', title: 'Google', enabled: false }, { key: 'gosuslugi', title: 'Госуслуги', enabled: false, soon: true }];
+    const ico = { yandex: '🟥', google: '🟦', gosuslugi: '🏛️' };
+    return el('div', { class: 'auth-row' }, list.map(p => el('button', { type: 'button', class: 'btn btn-outline auth-btn' + (p.soon ? ' soon' : ''), disabled: !!p.soon, onclick: () => {
+      if (!p.enabled) return toast(`Вход через ${p.title} заработает после подключения ключей приложения`);
+      location.href = `/auth/${p.key}?ret=${encodeURIComponent(location.hash || '#/my')}`;
+    } }, el('span', {}, ico[p.key] || '🔑'), p.soon ? `${p.title} · скоро` : p.title)));
+  }
   function profileModal({ gate = null, onDone = null, type = null } = {}) {
     const rootM = $('#modal-root');
     const close = () => { rootM.innerHTML = ''; };
@@ -1239,15 +1336,18 @@
     rootM.append(el('div', { class: 'modal-bg', onclick: ev => { if (ev.target === ev.currentTarget) close(); } },
       el('div', { class: 'modal' }, el('h2', {}, gate || (me?.registered ? 'Профиль' : 'Представьтесь')),
         el('p', {}, gate ? 'Это и есть регистрация, без паролей: кто вы, как называть и куда прислать напоминание. Фото и описание добавите в личном кабинете.' : 'Имя и фото покажем организатору в списке гостей, контакт — только для напоминаний.'),
+        !me?.registered ? el('div', { class: 'field' }, el('label', {}, 'Быстрый вход'), authButtons(), el('div', { class: 'or-line' }, el('span', {}, 'или заполните сами'))) : null,
         el('div', { class: 'field' }, el('label', {}, 'Кто вы'), typeBox),
         full ? el('div', { class: 'pic-block', style: 'margin:6px 0 10px' }, avatarThumb, el('div', {}, pick, st.avatar ? el('button', { type: 'button', class: 'btn btn-ghost btn-sm', onclick: () => { st.avatar = null; st.avatarUrl = null; paintAv(); } }, 'Убрать') : null)) : null,
         el('div', { class: 'field' }, nameLabel, name, nameHelp), el('div', { class: 'field' }, el('label', {}, 'Контакт'), contact, el('div', { class: 'help' }, 'Телефон или email: напоминание за 24 часа и QR на входе.')),
         full ? el('div', { class: 'field' }, el('label', {}, st.type === 'org' ? 'Об организации' : 'О себе'), about) : null,
-        el('div', { style: 'display:flex;gap:8px;margin-top:18px;justify-content:flex-end' }, el('button', { type: 'button', class: 'btn btn-ghost', onclick: close }, 'Отмена'),
+        me?.rulesAccepted ? null : el('label', { class: 'toggle-check rules-check' }, (st.rules = el('input', { type: 'checkbox' })), el('span', {}, el('b', {}, 'Принимаю правила площадки'), el('small', {}, el('a', { href: '#/rules', target: '_blank' }, 'Прочитать правила'), ' · запрещённые мероприятия, возраст, расчёты'))),
+        el('div', { class: 'modal-actions' }, el('button', { type: 'button', class: 'btn btn-ghost', onclick: close }, 'Отмена'),
           el('button', { type: 'button', class: 'btn btn-primary', onclick: async () => {
             if (!name.value.trim()) return toast(st.type === 'org' ? 'Введите название организации' : 'Как к вам обращаться?');
             if (!contact.value.trim()) return toast('Нужен телефон или email');
-            try { const body = { name: name.value.trim(), contact: contact.value.trim(), account_type: st.type }; if (full) { body.about = about.value.trim(); body.avatar = st.avatar === null ? null : st.avatar; } await api('/api/me', { method: 'PATCH', body }); await loadMe(); close(); toast('Сохранили'); if (onDone) onDone(); else if (location.hash === '#/my') renderMy(); else if (location.hash.startsWith('#/new')) route(); } catch (err) { toast(err.body?.message || 'Не получилось'); }
+            if (st.rules && !st.rules.checked) return toast('Отметьте, что принимаете правила площадки');
+            try { const body = { name: name.value.trim(), contact: contact.value.trim(), account_type: st.type, accept_rules: !!st.rules?.checked }; if (full) { body.about = about.value.trim(); body.avatar = st.avatar === null ? null : st.avatar; } await api('/api/me', { method: 'PATCH', body }); await loadMe(); close(); toast('Сохранили'); if (onDone) onDone(); else if (location.hash === '#/my') renderMy(); else if (location.hash.startsWith('#/new')) route(); } catch (err) { toast(err.body?.message || 'Не получилось'); }
           } }, gate ? 'Готово' : 'Сохранить')))));
     name.focus();
   }
@@ -1444,15 +1544,23 @@
       if (!sch.times.length) return toast('Укажите время');
       const body = { kind, title: v('title'), cat: catSel.value, sub: subSel.value || null, date: sch.date, times: sch.times, duration: sch.duration, recurrence: sch.recurrence,
         price: pls.price, capacity: pls.capacity, meta: pls.meta, keywords: kw.value, lang: f.lang.value, venue: v('venue'), address: v('address'), district: f.district.value, organizer: v('organizer'),
-        description: desc.value.trim(), video_url: video.value.trim() || null, with: WITH.map(([k]) => k).filter(k => f['w_' + k].checked), pushkin: f.pushkin.checked, registration: f.regExt.checked ? { type: 'external', url: v('url') } : { type: 'here' }, ...design.get() };
+        description: desc.value.trim(), video_url: video.value.trim() || null, age: Number(f.age.value), rules_ok: me?.rulesAccepted || !!f.rulesOk?.checked, with: WITH.map(([k]) => k).filter(k => f['w_' + k]?.checked), pushkin: f.pushkin.checked, registration: f.regExt.checked ? { type: 'external', url: v('url') } : { type: 'here' }, ...design.get() };
       const btn = form.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Публикуем…';
       try { const r = await api('/api/events', { method: 'POST', body }); facets = null; await loadMe(); toast(r.created > 1 ? `Создано событий: ${r.created}` : 'Опубликовано 🎉'); location.hash = r.created > 1 ? '#/cabinet' : `#/event/${r.first.slug}`; }
-      catch { btn.disabled = false; btn.textContent = 'Опубликовать'; toast('Проверьте обязательные поля'); }
+      catch (err) { btn.disabled = false; btn.textContent = 'Опубликовать'; toast(err.body?.message || 'Проверьте обязательные поля'); }
     } },
       section('1', 'Что планируете?', 'От этого зависят вопросы ниже — как на Авито, где квартира и телефон заполняются по-разному.', scenBox),
       section('2', 'Что и где', 'Минимум для публикации: название и место. Остальное повышает позицию в поиске.',
         field('Название', input('title', { required: true, maxlength: 120, placeholder: 'Например, «Прокат велосипедов на набережной» или «Шахматы по средам»', oninput: () => { design.paint(); quality(); } }), true),
         el('div', { class: 'grid2' }, field('Категория', catSel, true), field('Уточнение', subSel, false, 'Подкатегория сильно помогает поиску')),
+        (() => {
+          const ageSel = select('age', [[0, '0+ · для всех'], [6, '6+'], [12, '12+'], [16, '16+'], [18, '18+ · только взрослые']], 0);
+          const kidsBox = (f.w_kids = el('input', { type: 'checkbox' }));
+          const kidsLbl = el('label', { class: 'toggle-check' }, kidsBox, el('span', {}, el('b', {}, '🧒 Можно с детьми'), el('small', {}, 'Покажем в подборках «С детьми» и по запросам «с ребёнком»')));
+          const sync = () => { const adult = Number(ageSel.value) >= 16; kidsBox.disabled = adult; if (adult) kidsBox.checked = false; kidsLbl.classList.toggle('off', adult); };
+          ageSel.addEventListener('change', sync); sync();
+          return el('div', { class: 'grid2' }, field('Возраст', ageSel, true, 'Маркировка 0+…18+ обязательна по закону о защите детей от информации'), field('Дети', kidsLbl));
+        })(),
         el('div', { class: 'grid2' }, field('Место', input('venue', { required: true, placeholder: 'Парк Горького, у главного входа', oninput: quality }), true), field('Адрес', input('address', { placeholder: 'ул. Николая Ершова, 1', oninput: quality }))),
         el('div', { class: 'grid2' }, field('Район', select('district', ['Вахитовский', 'Советский', 'Ново-Савиновский', 'Приволжский', 'Кировский', 'Московский', 'Авиастроительный'].map(d => [d, d])), true), field('Организатор', input('organizer', { required: true, placeholder: 'Название клуба, студии, компании или ваше имя' }), true, 'Так будет называться ваша страница и кабинет'))),
       section('3', 'Когда', null, sched),
@@ -1463,13 +1571,13 @@
         field('Ключевые слова', kw, false, 'Как вас ищут гости: «сап», «новичкам», «с детьми», «на английском»'),
         el('div', { class: 'quality' }, qBar, qText, qTips)),
       section('6', 'Оформление', 'Обложка, тема и цвет кнопок — как у Luma.', design.el),
-      el('details', { class: 'nf-more' }, el('summary', {}, 'Дополнительно: язык, кому подходит, запись по ссылке'),
+      el('details', { class: 'nf-more' }, el('summary', {}, 'Дополнительно: язык, с кем идти, запись по ссылке'),
         el('div', { class: 'grid2', style: 'margin-top:12px' }, field('Язык события', select('lang', [['ru', 'Русский'], ['tt', 'Татарский'], ['en', 'Английский']]), true)),
-        el('div', { class: 'field' }, el('label', {}, 'Кому подходит'), el('div', { class: 'checks' }, WITH.map(([k, t]) => el('label', {}, (f['w_' + k] = el('input', { type: 'checkbox', checked: k !== 'kids' })), t)))),
+        el('div', { class: 'field' }, el('label', {}, 'Кому подходит'), el('div', { class: 'checks' }, WITH.filter(([k]) => k !== 'kids').map(([k, t]) => el('label', {}, (f['w_' + k] = el('input', { type: 'checkbox', checked: true })), t)))),
         el('div', { class: 'field' }, el('label', {}, 'Метки и запись'), el('div', { class: 'checks' }, el('label', {}, (f.pushkin = el('input', { type: 'checkbox' })), '🎫 Пушкинская карта'),
           el('label', {}, (f.regHere = el('input', { type: 'radio', name: 'reg', checked: true })), 'Запись у нас'), el('label', {}, (f.regExt = el('input', { type: 'radio', name: 'reg' })), 'Запись по ссылке')),
           input('url', { type: 'url', placeholder: 'https://… если запись по ссылке (Timepad, Qtickets, касса)', style: 'margin-top:10px' }))),
-      el('div', { class: 'nf-publish' }, summary, el('button', { type: 'submit', class: 'btn btn-primary btn-lg btn-block' }, 'Опубликовать')),
+      el('div', { class: 'nf-publish' }, summary, me?.rulesAccepted ? null : el('label', { class: 'toggle-check rules-check' }, (f.rulesOk = el('input', { type: 'checkbox', required: true })), el('span', {}, el('b', {}, 'Событие соответствует правилам площадки'), el('small', {}, 'Законное, с верной ценой и возрастом. ', el('a', { href: '#/rules', target: '_blank' }, 'Правила')))), el('button', { type: 'submit', class: 'btn btn-primary btn-lg btn-block' }, 'Опубликовать')),
       el('div', { class: 'help', style: 'text-align:center;margin-top:10px' }, 'Публикуя, вы соглашаетесь с правилами площадки. Всё сразу появится в подборе, управлять можно в кабинете.'));
     updateSummary(); quality();
     root.append(el('div', { class: 'wrap page' }, el('a', { class: 'back', href: me?.isOrganizer ? '#/cabinet' : '#/' }, me?.isOrganizer ? '← В кабинет' : '← Назад к подбору'),
@@ -1734,7 +1842,7 @@
     const refreshCount = () => { clearTimeout(timer); timer = setTimeout(async () => { S.q = q.value.trim(); persist(); const [from, to] = range(); try { const d = await api(`/api/events?${params(from, to)}&facets=1`); panel.setFacets(d.facets); const n = d.events.length; countBtn.textContent = n ? `Показать ${n} ${plural(n, ['событие', 'события', 'событий'])} →` : 'Ничего не нашли — измените условия'; countBtn.disabled = !n; } catch {} }, 250); };
     q.addEventListener('input', refreshCount);
     const panel = filtersPanel(S, { onChange: refreshCount, inline: true });
-    const clearAll = () => { S.q = ''; q.value = ''; S.cats = []; S.cat = null; S.sub = null; S.subs = []; S.acts = []; S.mood = null; S.withWhom = ''; S.pmin = ''; S.pmax = ''; S.tod = ''; S.noise = ''; S.when = 'any'; $('#nav-q').value = ''; persist(); panel.el.replaceWith(filtersPanel(S, { onChange: refreshCount, inline: true }).el); refreshCount(); };
+    const clearAll = () => { S.q = ''; q.value = ''; S.cats = []; S.cat = null; S.sub = null; S.subs = []; S.acts = []; S.mood = null; S.withWhom = ''; S.kidAge = ''; S.pmin = ''; S.pmax = ''; S.tod = ''; S.noise = ''; S.when = 'any'; $('#nav-q').value = ''; persist(); panel.el.replaceWith(filtersPanel(S, { onChange: refreshCount, inline: true }).el); refreshCount(); };
     const aiQ = el('textarea', { class: 'ai-input', rows: 2, placeholder: 'Например: хочу прогуляться где-то с ребёнком, недорого и недалеко от центра', enterkeyhint: 'search' });
     const aiOut = el('div', { class: 'ai-out' });
     let aiTimer = null;
@@ -1917,10 +2025,15 @@
     if (h.startsWith('#/new')) return renderNew().then(() => prefillNew(new URLSearchParams(h.split('?')[1] || '')));
     if (h.startsWith('#/cabinet')) return renderCabinet(new URLSearchParams(h.split('?')[1] || ''));
     if (h === '#/my') return renderMy();
+    if (h === '#/rules') return renderRules();
+    if (h.startsWith('#/stats')) return renderStats();
     renderHome();
   }
   document.addEventListener('DOMContentLoaded', async () => {
     initTheme(); initNavSearch(); initMobile(); initFooter();
+    { const u = new URL(location.href); const ok = u.searchParams.get('auth'), bad = u.searchParams.get('auth_error');
+      if (ok || bad) { setTimeout(() => toast(bad || `Вы вошли через ${ok === 'yandex' ? 'Яндекс ID' : ok === 'google' ? 'Google' : ok}`), 400); u.searchParams.delete('auth'); u.searchParams.delete('auth_error'); history.replaceState(null, '', u.pathname + u.search + u.hash); } }
+    loadConfig();
     try { const tx = await api('/api/taxonomy'); taxonomy = tx.categories; taxonomy.activities = tx.activities || []; taxonomy.groups = tx.groups || {}; taxonomy.districts = tx.districts || []; } catch { taxonomy = []; taxonomy.activities = []; taxonomy.groups = {}; }
     loadMe();
     window.addEventListener('hashchange', route);

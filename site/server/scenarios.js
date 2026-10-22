@@ -41,6 +41,9 @@ export const SCENARIOS = [
   { q: 'чем заняться одному в воскресенье', expect: { audience: ['solo'], weekdays: [0] }, keywords: ['выставка', 'лекция'], check: { diverse: 3 } },
 
   // --- дети, пары, туристы ---
+  { q: 'с ребёнком 5 лет в выходные', expect: { audience: ['kids'], kidAge: 5, when: 'weekend' }, keywords: ['с детьми'], note: 'возраст ребёнка отсекает 6+ и старше' },
+  { q: 'последний богатырь', expect: { activity: [] }, activityOnly: true, keywords: ['последний богатырь'], note: 'название фильма: «лед» внутри «последний» — не каток' },
+  { q: 'детский спектакль', expect: { audience: ['kids'], activity: ['theatre'] }, keywords: ['спектакль'] },
   { q: 'отдохнуть с ребенком', expect: { audience: ['kids'], vibe: ['calm'] }, keywords: ['с детьми'], check: { diverse: 2 }, note: 'два слова плюс предлог — всё равно фраза, раз словари что-то поняли' },
   { q: 'куда сходить с ребёнком 5 лет днём', expect: { audience: ['kids'], times: ['day'] }, keywords: ['дети'], check: { diverse: 2 } },
   { q: 'романтическое свидание вечером', expect: { vibe: ['romantic'], times: ['evening'] }, keywords: ['джаз', 'ужин'] },

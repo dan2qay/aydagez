@@ -3,6 +3,7 @@ import pg from 'pg';
 import { CATEGORIES, ORGANIZERS, generateSeries, generateOneOffs } from './seed.js';
 import { VENUES } from './venues.js';
 import { generateExtra, EXTRA_ORGANIZERS, EXTRA_SERIES } from './seed_extra.js';
+import { SUB_AGE } from './seed_kids.js';
 
 const { Pool } = pg;
 export const DATABASE_URL = process.env.DATABASE_URL || 'postgres://aidaem:aidaem@localhost:5433/aidaem';
@@ -94,6 +95,7 @@ ALTER TABLE organizers ADD COLUMN IF NOT EXISTS kind text, ADD COLUMN IF NOT EXI
   ADD COLUMN IF NOT EXISTS vk text, ADD COLUMN IF NOT EXISTS hours text, ADD COLUMN IF NOT EXISTS verified boolean DEFAULT false, ADD COLUMN IF NOT EXISTS balance int DEFAULT 5000,
   ADD COLUMN IF NOT EXISTS announcement jsonb, ADD COLUMN IF NOT EXISTS promoted_until timestamptz, ADD COLUMN IF NOT EXISTS erid text, ADD COLUMN IF NOT EXISTS invite_code text;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS paused boolean DEFAULT false;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS age smallint;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS avatar uuid, ADD COLUMN IF NOT EXISTS about text, ADD COLUMN IF NOT EXISTS account_type text, ADD COLUMN IF NOT EXISTS registered_at timestamptz;
 CREATE TABLE IF NOT EXISTS organizer_members (
   organizer_id int REFERENCES organizers(id) ON DELETE CASCADE, client_id uuid NOT NULL, role text DEFAULT 'manager', created_at timestamptz DEFAULT now(),
@@ -142,12 +144,12 @@ export async function ensureOrganizer(name, extra = {}) {
 
 async function insertEvent(e, organizerId, source = 'seed', createdBy = null) {
   const r = await q(`INSERT INTO events(slug,series_key,title,category_key,subcategory_key,emoji,start_at,duration_min,price,lang,venue,address,district,organizer_id,
-      with_whom,solo,stol,registration_type,registration_label,registration_url,capacity,going_base,tags,description,source,created_by,lat,lng,cover,photos,theme,accent,kind,meta,keywords,video_url,promoted_until,erid,boost_terms)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39)
+      with_whom,solo,stol,registration_type,registration_label,registration_url,capacity,going_base,tags,description,source,created_by,lat,lng,cover,photos,theme,accent,kind,meta,keywords,video_url,promoted_until,erid,boost_terms,age)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
     ON CONFLICT (slug) DO NOTHING RETURNING id`,
     [e.slug, e.series_key, e.title, e.category_key, e.subcategory_key, e.emoji, e.start_at, e.duration_min, e.price, e.lang, e.venue, e.address, e.district, organizerId,
       e.with_whom, e.solo, e.stol, e.registration_type, e.registration_label, e.registration_url, e.capacity, e.going_base, e.tags, e.description, source, createdBy,
-      e.lat ?? VENUES[e.venue]?.[0] ?? null, e.lng ?? VENUES[e.venue]?.[1] ?? null, e.cover || null, e.photos || [], e.theme || null, e.accent || null, e.kind || null, JSON.stringify(e.meta || {}), e.keywords || [], e.video_url || null, e.promoted_until || null, e.erid || null, e.boost_terms || []]);
+      e.lat ?? VENUES[e.venue]?.[0] ?? null, e.lng ?? VENUES[e.venue]?.[1] ?? null, e.cover || null, e.photos || [], e.theme || null, e.accent || null, e.kind || null, JSON.stringify(e.meta || {}), e.keywords || [], e.video_url || null, e.promoted_until || null, e.erid || null, e.boost_terms || [], e.age ?? null]);
   return r.rows[0]?.id || null;
 }
 export { insertEvent };
@@ -171,6 +173,11 @@ export async function ensureSeed({ reseed = false } = {}) {
       ELSE 'community' END WHERE kind IS NULL`);
   await q(`UPDATE events SET category_key='fun', subcategory_key='anticafe' WHERE series_key='anticafe-day' AND subcategory_key<>'anticafe'`);
   await q(`UPDATE organizers SET kind='fun' WHERE kind IS NOT NULL AND kind<>'fun' AND (name ILIKE '%warpoint%' OR name ILIKE '%colizeum%' OR name ILIKE '%клаустрофоб%' OR name ILIKE '%батут%' OR name ILIKE '%лазертаг%' OR name ILIKE '%картинг%' OR name ILIKE '%боулинг%' OR name ILIKE '%замания%' OR name ILIKE '%кидбург%' OR name ILIKE '%цирк%' OR name ILIKE '%планетарий%' OR name ILIKE '%океанариум%' OR name ILIKE '%котокафе%' OR name ILIKE '%речфлот%' OR name ILIKE '%сити-тур%' OR name ILIKE '%верёвочный%')`);
+  // Возрастная маркировка: у сидов — по шаблону серии, у остальных — по подкатегории; 16+ и 18+ не бывают «с детьми»
+  await q(`UPDATE events SET category_key='kids', subcategory_key='kidstheatre' WHERE series_key='ekiyat' AND category_key<>'kids'`);
+  for (const t of EXTRA_SERIES) if (t.age != null) await q(`UPDATE events SET age=$1 WHERE series_key=$2 AND age IS DISTINCT FROM $1`, [t.age, t.key]);
+  await q(`UPDATE events SET age = CASE subcategory_key ${Object.entries(SUB_AGE).map(([k, v]) => `WHEN '${k}' THEN ${v}`).join(' ')} ELSE 0 END WHERE age IS NULL`);
+  await q(`UPDATE events SET with_whom = array_remove(with_whom, 'kids') WHERE age >= 16 AND 'kids' = ANY(with_whom)`);
   if (reseed) await q(`DELETE FROM events WHERE source='seed'`);
   const today = new Date();
   const horizon = new Date(today); horizon.setDate(today.getDate() + 30);

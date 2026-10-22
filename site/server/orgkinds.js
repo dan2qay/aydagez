@@ -9,6 +9,7 @@ export const ORG_KINDS = {
   studio: { title: 'Студия / школа', emoji: '🧘', scenario: 'regular', cat: 'sport', sub: 'yoga', cta: 'Добавить расписание занятий', hint: 'Регулярные занятия по дням недели, пробные уроки' },
   museum: { title: 'Музей / галерея', emoji: '🏛️', scenario: 'open', cat: 'culture', sub: 'exhibition', cta: 'Добавить выставку', hint: 'Часы работы, выставки, экскурсии' },
   sport: { title: 'Спортплощадка', emoji: '⚽', scenario: 'rental', cat: 'sport', sub: 'team', cta: 'Открыть аренду', hint: 'Залы, корты, поля по часам' },
+  kids: { title: 'Детская студия / кружок', emoji: '🎈', scenario: 'regular', cat: 'kids', sub: 'kidsedu', cta: 'Добавить расписание занятий', hint: 'Кружки, секции, мастер-классы и спектакли для детей: расписание, возраст, пробные занятия' },
   fun: { title: 'Развлечения', emoji: '🎢', scenario: 'sessions', cat: 'fun', sub: 'quest', cta: 'Добавить сеансы и слоты', hint: 'VR, квесты, батуты, боулинг, цирк, теплоходы: слоты и сеансы по дням' },
   community: { title: 'Сообщество / организатор', emoji: '🎪', scenario: 'single', cat: 'social', sub: 'newcomers', cta: 'Добавить событие', hint: 'Встречи, клубы, лекции, прогулки' },
 };

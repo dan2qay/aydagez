@@ -1,6 +1,14 @@
 // Таксономия интересов и расписание событий Казани для первичного наполнения базы.
 
 export const CATEGORIES = [
+  { key: 'kids', title: 'Детям', emoji: '🎈', sort: 0, subs: [
+    { key: 'kidstheatre', title: 'Спектакли для детей', emoji: '🎭', kw: ['детский спектакль', 'кукольный театр', 'тюз', 'сказка', 'для детей'] },
+    { key: 'kidsclass', title: 'Мастер-классы для детей', emoji: '🎨', kw: ['мастер-класс для детей', 'рисование', 'лепка', 'пряники', 'творчество'] },
+    { key: 'kidsedu', title: 'Кружки и развитие', emoji: '🤖', kw: ['кружок', 'робототехника', 'шахматы для детей', 'развитие', 'чтение'] },
+    { key: 'kidssport', title: 'Детский спорт', emoji: '⚽', kw: ['детский спорт', 'футбол для детей', 'танцы для детей', 'йога для детей', 'секция'] },
+    { key: 'kidsshow', title: 'Праздники и шоу', emoji: '🎉', kw: ['научное шоу', 'праздник', 'квест для детей', 'аниматоры', 'детское шоу'] },
+    { key: 'kidscinema', title: 'Мультфильмы', emoji: '🎠', kw: ['мультфильм', 'мультики', 'кино для детей'] },
+  ] },
   { key: 'sport', title: 'Спорт', emoji: '🏃', sort: 1, subs: [
     { key: 'run', title: 'Бег', emoji: '👟', kw: ['пробежка', 'забег', 'бегать', 'марафон', 'паркран', 'run'] },
     { key: 'yoga', title: 'Йога', emoji: '🧘', kw: ['растяжка', 'медитация', 'пилатес', 'стретчинг'] },
@@ -197,7 +205,7 @@ export const SERIES = [
     venue: 'Мастерская «Глина»', address: 'ул. Петербургская, 50', district: 'Вахитовский', organizer: 'Глина', with: ['solo', 'duo'], solo: true,
     registration: { type: 'here' }, capacity: 8,
     description: 'Лепим чашку или тарелку за один визит, обжиг и глазурь — через две недели забираете готовое. Материалы входят в цену.' },
-  { key: 'ekiyat', title: 'Детский спектакль в театре кукол «Экият»', cat: 'culture', sub: 'theatre', emoji: '🧸', weekdays: [6, 0], time: '11:00', duration: 60, price: 600, lang: 'ru',
+  { key: 'ekiyat', title: 'Детский спектакль в театре кукол «Экият»', cat: 'kids', sub: 'kidstheatre', age: 0, emoji: '🧸', weekdays: [6, 0], time: '11:00', duration: 60, price: 600, lang: 'ru',
     venue: 'Театр кукол «Экият»', address: 'ул. Петербургская, 57', district: 'Вахитовский', organizer: 'Театр «Экият»', with: ['kids'],
     registration: { type: 'external', label: 'в кассе театра', url: 'https://kazan-puppet.ru/' }, capacity: 250,
     description: 'Спектакли для детей от 3 лет, продолжительность около часа. Цена за одного зрителя.' },
@@ -291,7 +299,7 @@ export function makeEventRow(tpl, dateObj) {
     slug, series_key: tpl.key, title: tpl.title, category_key: tpl.cat, subcategory_key: tpl.sub, emoji: tpl.emoji,
     start_at: start, duration_min: tpl.duration, price: tpl.price, lang: tpl.lang,
     venue: tpl.venue, address: tpl.address, district: tpl.district, organizer: tpl.organizer,
-    with_whom: tpl.with, solo: !!tpl.solo, stol: !!tpl.stol,
+    with_whom: (tpl.age ?? 0) >= 16 ? (tpl.with || []).filter(w => w !== 'kids') : tpl.with, solo: !!tpl.solo, stol: !!tpl.stol, age: tpl.age ?? null,
     registration_type: tpl.registration.type, registration_label: tpl.registration.label || null, registration_url: tpl.registration.url || null,
     capacity: tpl.capacity, going_base: tpl.stol ? Math.min(5, 2 + (seed % 4)) : base,
     tags, description: tpl.description,

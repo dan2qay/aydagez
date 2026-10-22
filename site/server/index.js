@@ -17,6 +17,7 @@ import { llmInfo, llmEnabled } from './llm.js';
 import { ensurePhotos } from './photos.js';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { isoDate } from './seed.js';
+import { mountGrowth, GROWTH_SQL, authProviders } from './growth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(__dirname, '..', 'public');
@@ -94,7 +95,7 @@ function serialize(row, registeredIds = new Set()) {
     venue: row.venue, address: row.address, district: row.district,
     organizer: { id: row.organizer_id, name: row.organizer_name, slug: row.organizer_slug, kind: row.organizer_kind || null, logo: row.organizer_logo ? `/api/files/${row.organizer_logo}` : null, verified: !!row.organizer_verified },
     orgPromoted: !!(row.org_promoted_until && new Date(row.org_promoted_until) > new Date()), paused: !!row.paused,
-    with: row.with_whom || [], solo: row.solo, stol: row.stol,
+    with: row.with_whom || [], solo: row.solo, stol: row.stol, age: row.age ?? 0,
     registration: { type: row.registration_type, label: row.registration_label, url: row.registration_url },
     capacity: row.capacity, going: row.going_base + row.reg_count, tags: row.tags || [], description: row.description,
     registered: registeredIds.has(row.id), source: row.source, lat: row.lat, lng: row.lng,
@@ -178,7 +179,7 @@ app.get('/api/events', async (req, res, next) => {
     // ИИ-режим: ai=1 — всегда, ai=0 — никогда, иначе (auto) сам включается для фраз («хочу…», «куда…», 4+ слов).
     const aiParam = String(ai ?? 'auto');
     const useAi = !!query.trim() && aiParam !== '0' && (aiParam === '1' || looksLikePhrase(query));
-    const parsed = useAi ? await parseQuerySmart(query) : null;
+    const parsed = useAi ? (req.query.fast === '1' ? parseQuery(query) : await parseQuerySmart(query)) : null; // fast=1 — навык Алисы: ответ за 3 секунды, без модели
     // Жёсткие признаки — из правил; догадки модели (soft) только ранжируют, но не отсекают: «сегодня» не должно превращаться в «D&D сегодня»
     const sf = parsed?.soft || {};
     const tagSignal = !!parsed && !!((!sf.audience && parsed.audience.length) || (!sf.vibe && parsed.vibe.length) || (!sf.setting && parsed.setting.length) || (!sf.activity && parsed.activity.length) || (!sf.intensity && parsed.intensity) || parsed.price || parsed.times.length);
@@ -195,7 +196,8 @@ app.get('/api/events', async (req, res, next) => {
       // Только «когда/где/во сколько» без признаков события — берём всю ленту и сужаем условиями (и словами, если они есть)
       const hardWords = parsed.restHard || parsed.rest; const hardHits = hardWords.length ? search(hardWords.join(' '), docs, vocab).hits : new Map();
       let found = tagSignal ? pool.filter(e => (aiScores.get(e.id) || 0) >= 0.6) : (hardWords.length ? pool.filter(e => hardHits.has(e.id)) : pool);
-      if (!sf.audience && parsed.audience.includes('kids')) found = found.filter(e => e.with.includes('kids'));
+      if (!sf.audience && parsed.audience.includes('kids')) found = found.filter(e => e.with.includes('kids') && e.age < 16);
+      if (parsed.kidAge != null) found = found.filter(e => e.age <= parsed.kidAge); // «с ребёнком 5 лет» — без 6+ и старше
       if (parsed.price === 'free') found = found.filter(e => e.price === 0);
       if (parsed.weekdays.length) found = found.filter(e => parsed.weekdays.includes(new Date(e.date + 'T12:00:00').getDay()));
       const dr = parsed.when ? dateRangeFor(parsed.when) : null;
@@ -218,7 +220,10 @@ app.get('/api/events', async (req, res, next) => {
       pool = pool.filter(e => scores.has(e.id));
     }
     if (mood && MOOD[mood]) pool = pool.filter(e => MOOD[mood].has(e.sub));
-    if (withWhom) pool = pool.filter(e => e.with.includes(withWhom));
+    if (withWhom === 'kids') pool = pool.filter(e => e.with.includes('kids') && e.age < 16);
+    else if (withWhom) pool = pool.filter(e => e.with.includes(withWhom));
+    const ageMax = req.query.age !== undefined && req.query.age !== '' ? Number(req.query.age) : null;
+    if (ageMax !== null && !Number.isNaN(ageMax)) pool = pool.filter(e => e.age <= ageMax);
     const tod = String(req.query.tod || '').split(',').filter(x => ['morning', 'day', 'evening', 'night'].includes(x));
     if (tod.length) pool = pool.filter(e => tod.includes(e.aiTags?.time) || (e.kind === 'open' && tod.includes(openCovers(e)))); // время суток: по тегу или по часам работы
     const noise = String(req.query.noise || '');
@@ -247,7 +252,8 @@ app.get('/api/events', async (req, res, next) => {
     list = sort === 'time' ? list : rankList(list, { now: new Date(), hits: scores, tokens, aiScores, clicks: sig.clicks.get(normalize(query)) || null, popularity: sig.popularity, interests });
     if (sort !== 'time' && parsed && !fallbackAi && (parsed.activity.includes('sport') || (!parsed.activity.length && !parsed.restHard?.length))) list = diversifyByDay(list, e => (e.acts || [])[0] || e.sub); // общий запрос («спортом», «с семьёй») — разные виды рядом
     if (query.trim()) q(`INSERT INTO search_log(client_id, session_id, query, corrected, results, mode, filters) VALUES($1,$2,$3,$4,$5,$6,$7)`,
-      [req.clientId, req.sessionId || null, query.slice(0, 200), corrected, list.length, aiInfo ? 'ai' : 'text', JSON.stringify({ cat, sub, mood, with: withWhom, budget, from, to })]).catch(() => {});
+      [req.clientId, req.sessionId || null, query.slice(0, 200), corrected, list.length, aiInfo ? 'ai' : 'text', JSON.stringify({ cat, sub, mood, with: withWhom, budget, from, to, ai_source: aiInfo?.source || null, fallback: !!aiInfo?.fallback })]).catch(() => {});
+    const limit = Number(req.query.limit) || 0; if (limit > 0) list = list.slice(0, Math.min(limit, 200)); // навык Алисы и виджеты берут только начало выдачи
     res.json({ events: list, days, corrected, facets, ungroup: tod.length > 0 || !!(aiInfo && aiInfo.ungroup), total: pool.length, range: { from: from || null, to: to || null }, ai: aiInfo });
   } catch (e) { next(e); }
 });
@@ -369,8 +375,9 @@ app.delete('/api/organizers/:id/follow', async (req, res, next) => {
 
 app.get('/api/me', async (req, res, next) => {
   try {
-    const row = (await q(`SELECT id,name,contact,interests,theme,created_at,avatar,about,account_type,registered_at FROM clients WHERE id=$1`, [req.clientId])).rows[0];
-    const me = { ...row, avatar: row.avatar ? `/api/files/${row.avatar}` : null, avatarId: row.avatar || null, accountType: row.account_type || null, registered: !!(row.name && row.contact && row.account_type) };
+    const row = (await q(`SELECT id,name,contact,interests,theme,created_at,avatar,avatar_url,about,account_type,registered_at,rules_accepted_at FROM clients WHERE id=$1`, [req.clientId])).rows[0];
+    const identities = (await q(`SELECT provider, email FROM client_identities WHERE client_id=$1`, [req.clientId])).rows;
+    const me = { ...row, identities, rulesAccepted: !!row.rules_accepted_at, avatar: row.avatar ? `/api/files/${row.avatar}` : row.avatar_url || null, avatarId: row.avatar || null, accountType: row.account_type || null, registered: !!(row.name && row.contact && row.account_type) };
     delete me.account_type;
     const regs = (await q(`${EVENT_SQL} WHERE e.id IN (SELECT event_id FROM registrations WHERE client_id=$1) AND e.start_at + (e.duration_min || ' minutes')::interval > now() ORDER BY e.start_at`, [req.clientId])).rows;
     const follows = (await q(`SELECT o.id,o.slug,o.name FROM follows f JOIN organizers o ON o.id=f.organizer_id WHERE f.client_id=$1 ORDER BY o.name`, [req.clientId])).rows;
@@ -385,7 +392,8 @@ app.get('/api/me', async (req, res, next) => {
 });
 app.patch('/api/me', async (req, res, next) => {
   try {
-    const { name, contact, interests, theme, about, account_type: at, avatar } = req.body || {};
+    const { name, contact, interests, theme, about, account_type: at, avatar, accept_rules } = req.body || {};
+    if (accept_rules) await q(`UPDATE clients SET rules_accepted_at=COALESCE(rules_accepted_at, now()) WHERE id=$1`, [req.clientId]);
     const accountType = ['person', 'org'].includes(at) ? at : null;
     const me = (await q(`UPDATE clients SET name=COALESCE($2,name), contact=COALESCE($3,contact), interests=COALESCE($4,interests), theme=COALESCE($5,theme), about=COALESCE($6,about), account_type=COALESCE($7,account_type),
                          avatar=CASE WHEN $8::text = 'null' THEN NULL WHEN $8::text IS NULL THEN avatar ELSE $8::uuid END,
@@ -433,7 +441,10 @@ app.post('/api/events', async (req, res, next) => {
     const b = req.body || {};
     const need = ['title', 'cat', 'date', 'venue', 'organizer', 'lang'];
     for (const k of need) if (!String(b[k] || '').trim()) return res.status(400).json({ error: `missing_${k}` });
-    const prof = (await q(`SELECT name, contact, account_type FROM clients WHERE id=$1`, [req.clientId])).rows[0] || {};
+    const prof = (await q(`SELECT name, contact, account_type, rules_accepted_at, blocked FROM clients WHERE id=$1`, [req.clientId])).rows[0] || {};
+    if (prof.blocked) return res.status(403).json({ error: 'blocked', message: 'Публикация недоступна: аккаунт заблокирован за нарушение правил площадки.' });
+    if (!b.rules_ok && !prof.rules_accepted_at) return res.status(400).json({ error: 'rules_required', message: 'Подтвердите, что событие соответствует правилам площадки.' });
+    if (b.rules_ok && !prof.rules_accepted_at) await q(`UPDATE clients SET rules_accepted_at=now() WHERE id=$1`, [req.clientId]);
     if (process.env.REQUIRE_PROFILE !== '0' && (!prof.name || !prof.contact || !prof.account_type)) return res.status(403).json({ error: 'profile_required', message: 'Чтобы создавать события, представьтесь в профиле: имя, контакт и тип аккаунта' });
     const bigKind = ['sessions', 'rental', 'groups', 'open'].includes(b.kind);
     const bigSize = Math.max(1, Number(b.capacity) || 50) > 30 || (Array.isArray(b.times) && b.times.length > 1);
@@ -447,7 +458,8 @@ app.post('/api/events', async (req, res, next) => {
     if (!cat) return res.status(400).json({ error: 'bad_cat' });
     const sub = b.sub ? (await q(`SELECT key,emoji FROM subcategories WHERE key=$1 AND category_key=$2`, [b.sub, b.cat])).rows[0] : null;
     const price = Math.max(0, Number(b.price) || 0);
-    const withList = Array.isArray(b.with) && b.with.length ? b.with : ['solo', 'duo', 'friends'];
+    const age = [0, 6, 12, 16, 18].includes(Number(b.age)) ? Number(b.age) : 0;
+    const withList = (Array.isArray(b.with) && b.with.length ? b.with : ['solo', 'duo', 'friends']).filter(w => !(age >= 16 && w === 'kids'));
     const tags = [];
     if (price === 0) tags.push('бесплатно');
     if (withList.includes('solo')) tags.push('можно одному');
@@ -478,7 +490,7 @@ app.post('/api/events', async (req, res, next) => {
           registration_type: external ? 'external' : 'here', registration_label: external ? 'по ссылке организатора' : null, registration_url: external ? String(b.registration.url) : null,
           capacity: Math.max(1, Number(b.capacity) || 50), going_base: 0, tags, description: String(b.description || 'Описание появится позже.').slice(0, 4000),
           lat: Number.isFinite(Number(b.lat)) && b.lat !== '' && b.lat != null ? Number(b.lat) : null, lng: Number.isFinite(Number(b.lng)) && b.lng !== '' && b.lng != null ? Number(b.lng) : null,
-          ...cleanDesign(b), kind, meta, keywords, video_url,
+          ...cleanDesign(b), kind, meta, keywords, video_url, age,
         };
         const id = await insertEvent(row, organizerId, 'user', req.clientId);
         if (id) { created++; if (!firstId) firstId = id; }
@@ -911,8 +923,9 @@ app.delete('/api/series/:key', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+mountGrowth(app, { q, EVENT_SQL, serialize, PUBLIC, PORT });
 app.get('/api/config', (req, res) => {
-  res.json({ city: 'Казань', brand: 'Айдагез', yandexMapsKey: process.env.YANDEX_MAPS_KEY || '', orgKinds: ORG_KINDS, promoProducts: PROMO_PRODUCTS, demoBalance: DEMO_BALANCE });
+  res.json({ city: 'Казань', brand: 'Айдагез', yandexMapsKey: process.env.YANDEX_MAPS_KEY || '', orgKinds: ORG_KINDS, promoProducts: PROMO_PRODUCTS, demoBalance: DEMO_BALANCE, authProviders: authProviders() });
 });
 
 app.get('/api/health', async (req, res) => {
@@ -929,6 +942,7 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 const reseed = process.argv.includes('--reseed');
 try {
   await migrate();
+  await q(GROWTH_SQL);
   const { inserted } = await ensureSeed({ reseed });
   console.log(`[db] ${DATABASE_URL.replace(/:\/\/.*@/, '://***@')} — готово, добавлено событий: ${inserted}`);
   app.listen(PORT, () => console.log(`[web] http://localhost:${PORT}`));

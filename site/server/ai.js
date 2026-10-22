@@ -21,7 +21,7 @@ const AUDIENCE = {
 const VIBE = {
   calm: ['спокойн', 'тих', 'расслаб', 'отдохн', 'неспешн', 'уютн', 'медленн', 'лениво', 'чил', 'посидеть', 'посидим', 'поболтать', 'пообщаться', 'душевн', 'без суеты'],
   active: ['активн', 'подвиж', 'спорт', 'энергичн', 'адреналин', 'экстрим', 'размят', 'потеть', 'подвигаться'],
-  party: ['вечеринк', 'тусов', 'танц', 'пати', 'диджей', 'ночной клуб', 'клубн', 'ночь', 'ночн', 'повесел', 'весел', 'развлеч', 'оторв', 'потус', 'зажечь', 'драйв'],
+  party: ['вечеринк', 'тусов', 'танц', 'потанц', 'пати', 'диджей', 'ночной клуб', 'клубн', 'ночь', 'ночн', 'повесел', 'весел', 'развлеч', 'оторв', 'потус', 'зажечь', 'драйв'],
   smart: ['узнать', 'лекци', 'поумнеть', 'для ума', 'интеллект', 'познавательн', 'книг', 'науч', 'обсуд', 'поучить'],
   romantic: ['романтич', 'свидан', 'красив', 'атмосфер'],
   creative: ['творч', 'рисов', 'лепить', 'мастер', 'своими руками', 'хобби'],
@@ -44,9 +44,9 @@ const INTENT = new Set(['отдохнуть', 'отдыхать', 'провес�
 export function looksLikePhrase(q) { const w = tokenize(normalize(q || '')); const n = normalize(q || ''); if (hasAnySignal(parseQuery(q || ''))) return true; /* «отдохнуть с ребёнком»: словари поняли «с детьми, спокойно» — значит, это фраза, а не слова для текстового поиска */ return w.length >= 3 || w.some(x => INTENT.has(x)) || /(^|\s)(в|к|после|до|около|с)\s+\d{1,2}(:\d{2})?(\s|$)/.test(n) || /(утром|днем|вечером|ночью|сегодня|завтра|послезавтра|выходн|уикенд|неделе|центр|окраин|бесплатн)/.test(n); }
 const ACTIVITY = {
   sport: ['спорт', 'физкультур', 'размять', 'подвигать', 'тренировк', 'фитнес', 'физическ', 'потренир'],
-  walk: ['гулять', 'прогул', 'погулять', 'пройтись', 'побродить'], run: ['бег', 'пробежк', 'побегать'], yoga: ['йог', 'растяж', 'медитац'], skate: ['катк', 'коньк', 'лед', 'лёд'],
+  walk: ['гулять', 'прогул', 'погулять', 'пройтись', 'побродить'], run: ['бег', 'пробежк', 'побегать'], yoga: ['йог', 'растяж', 'медитац'], skate: ['каток', 'катк', 'коньк', 'лед', 'лёд'],
   bike: ['велосипед', 'велик', 'самокат', 'велопрогул'], water: ['сап', 'вейк', 'лодк', 'катамаран'], climb: ['скалодром', 'лазать', 'боулдеринг'], team: ['футбол', 'волейбол', 'баскетбол', 'игры с мячом', 'с мячом', 'командн', 'бадминтон', 'теннис'],
-  football: ['футбол', 'футзал'], volleyball: ['волейбол'], basketball: ['баскетбол'], badminton: ['бадминтон'], pingpong: ['настольный теннис', 'пинг-понг', 'теннис'], roller: ['ролик', 'роллердром'], sup: ['сап ', 'сапы', 'сапах', 'sup'], wake: ['вейк'], nordic: ['скандинавск'], swim: ['плаван', 'бассейн', 'поплавать'], dnd: ['d&d', 'днд', 'ролев'], salsa: ['сальс', 'бачат', 'латино'],
+  football: ['футбол', 'футзал'], volleyball: ['волейбол'], basketball: ['баскетбол'], badminton: ['бадминтон'], pingpong: ['настольный теннис', 'пинг-понг', 'теннис'], roller: ['ролик', 'роллердром'], sup: ['сап ', 'сапы', 'сапах', 'sup'], wake: ['вейк'], nordic: ['скандинавск'], swim: ['плаван', 'бассейн', 'поплавать'], dnd: ['d&d', 'd d', 'dnd', 'днд', 'ролев'], salsa: ['сальс', 'бачат', 'латино'],
   quiz: ['квиз', 'викторин', 'интеллектуальн'], board: ['настолк', 'настольные игр', 'настольных игр', 'игротек'], chess: ['шахмат'], mafia: ['мафи'],
   cinema: ['кино', 'фильм', 'кинотеатр'], theatre: ['театр', 'спектакл'], standup: ['стендап', 'комик', 'посмеяться', 'юмор'], exhibition: ['выставк', 'музей', 'галере', 'картин'], tour: ['экскурс', 'истори', 'город'],
   concert: ['концерт', 'живая музыка', 'музык', 'группа'], jazz: ['джаз'], party: ['вечеринк', 'танц', 'диджей'], classical: ['классик', 'оркестр', 'филармон'], market: ['маркет', 'ярмарк', 'винил'], karaoke: ['караоке', 'попеть', 'спеть', 'петь', 'песн', 'вокал'],
@@ -82,6 +82,12 @@ const SUB_PROFILE = {
   workshop: { activity: ['workshop'], setting: ['indoor'], vibe: ['creative', 'calm'], intensity: 'low', audience: ['solo', 'couple', 'kids'] },
   theatre: { activity: ['theatre'], setting: ['indoor'], vibe: ['smart', 'romantic'], intensity: 'low', audience: ['couple', 'kids', 'solo'] },
   standup: { activity: ['standup'], setting: ['indoor', 'food'], vibe: ['party'], intensity: 'low', audience: ['friends', 'couple', 'solo'] },
+  kidstheatre: { activity: ['theatre'], setting: ['indoor'], vibe: ['calm', 'creative'], intensity: 'low', audience: ['kids'] },
+  kidsclass: { activity: ['workshop'], setting: ['indoor'], vibe: ['creative', 'calm'], intensity: 'low', audience: ['kids'] },
+  kidsedu: { activity: ['lecture'], setting: ['indoor'], vibe: ['smart', 'calm'], intensity: 'low', audience: ['kids'] },
+  kidssport: { activity: ['sport'], setting: ['indoor'], vibe: ['active'], intensity: 'high', audience: ['kids'] },
+  kidsshow: { activity: ['circus'], setting: ['indoor'], vibe: ['smart', 'party'], intensity: 'low', audience: ['kids'] },
+  kidscinema: { activity: ['cinema'], setting: ['indoor'], vibe: ['calm'], intensity: 'low', audience: ['kids'] },
   vr: { activity: ['vr'], setting: ['indoor'], vibe: ['active', 'party'], intensity: 'high', audience: ['friends', 'kids'] },
   quest: { activity: ['quest'], setting: ['indoor'], vibe: ['active', 'smart'], intensity: 'low', audience: ['friends', 'couple', 'kids'] },
   park: { activity: ['park', 'sport'], setting: ['indoor'], vibe: ['active'], intensity: 'high', audience: ['kids', 'friends'] },
@@ -95,17 +101,24 @@ const SUB_PROFILE = {
   tour: { activity: ['tour', 'walk'], setting: ['outdoor'], vibe: ['smart', 'calm'], intensity: 'low', audience: ['tourist', 'kids', 'couple', 'newcomer'] },
 };
 
-const hasAny = (text, markers) => markers.some(m => text.includes(m));
+// Короткие маркеры (до 4 букв) совпадают только с началом слова: «лед» не должен находиться в «последний», «еда» — в «среда», «чай» — в «случай»
+const RX = new Map();
+const hit = (text, m) => {
+  if (m.length > 4 || !/^[а-яёa-z0-9&]+$/.test(m)) return text.includes(m); // короткие маркеры — только буквы, цифры и «&», экранировать нечего
+  let rx = RX.get(m); if (!rx) { rx = new RegExp(`(?:^|[^а-яёa-z0-9])${m}`); RX.set(m, rx); }
+  return rx.test(text);
+};
+const hasAny = (text, markers) => markers.some(m => hit(text, m));
 const pick = (text, dict) => Object.entries(dict).filter(([, markers]) => hasAny(text, markers)).map(([k]) => k);
 
 // «Сильная модель» для события: пока правила по подкатегории и тексту. Возвращает единую схему тегов.
-export const TAG_VERSION = 13;
+export const TAG_VERSION = 15;
 // Спортивные занятия: у события с любым из них есть и общий «sport»; в запросе конкретный вид вытесняет общий
 export const SPORT_ACTS = ['run', 'yoga', 'skate', 'bike', 'water', 'climb', 'team', 'football', 'volleyball', 'basketball', 'badminton', 'pingpong', 'roller', 'sup', 'wake', 'nordic', 'swim'];
 // Занятия, которые гость называет точно: если названо — показываем только его (волейбол ≠ теннис, кино ≠ театр)
 const STRICT_ACTS = new Set([...SPORT_ACTS.filter(a => !['water', 'team'].includes(a)), 'vr', 'quest', 'bowling', 'circus', 'anticafe', 'boat', 'kidsclub', 'dnd', 'salsa', 'quiz', 'board', 'chess', 'mafia', 'cinema', 'theatre', 'standup', 'exhibition', 'concert', 'jazz', 'classical', 'karaoke', 'lecture', 'book', 'lang', 'stol', 'networking']);
 // Подкатегории, куда спокойно идут всей семьёй (для тега family)
-const FAMILY_SUBS = new Set(['walk', 'skate', 'board', 'chess', 'stol', 'concert', 'jazz', 'classical', 'market', 'lecture', 'book', 'workshop', 'theatre', 'cinema', 'exhibition', 'tour', 'yoga', 'circus', 'kidsclub', 'park', 'bowling', 'anticafe', 'boat', 'quest']);
+const FAMILY_SUBS = new Set(['kidstheatre', 'kidsclass', 'kidsedu', 'kidssport', 'kidsshow', 'kidscinema', 'walk', 'skate', 'board', 'chess', 'stol', 'concert', 'jazz', 'classical', 'market', 'lecture', 'book', 'workshop', 'theatre', 'cinema', 'exhibition', 'tour', 'yoga', 'circus', 'kidsclub', 'park', 'bowling', 'anticafe', 'boat', 'quest']);
 const HOUR_FMT = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', hour: 'numeric', hourCycle: 'h23' });
 export function mskHour(d) { const n = Number(HOUR_FMT.format(d)); return Number.isNaN(n) ? d.getHours() : n % 24; }
 export function tagEvent(e) {
@@ -169,7 +182,12 @@ export function parseQuery(q) {
   // Остаток — обычные слова для текстового поиска (без служебных)
   const stop = new Set(['хочу', 'хочется', 'хотим', 'хотелось', 'хотел', 'хотела', 'куда', 'сходить', 'сходим', 'пойти', 'пойдем', 'пойдём', 'где', 'то', 'что', 'нибудь', 'можно', 'бы', 'мне', 'нам', 'мы', 'я', 'с', 'в', 'на', 'и', 'или', 'как', 'для', 'это', 'чтобы', 'сегодня', 'завтра', 'послезавтра', 'вечером', 'утром', 'днем', 'днём', 'казань', 'казани', 'казане', 'город', 'городе', 'центр', 'центре', 'окраине', 'окраина', 'район', 'районе', 'недалеко', 'рядом', 'поблизости', 'давай', 'давайте', 'ищу', 'ищем', 'посоветуй', 'посоветуйте', 'подскажи', 'подскажите', 'какой', 'какие', 'какое', 'есть', 'ли', 'же', 'еще', 'ещё', 'чем', 'заняться', 'сделать', 'провести', 'время', 'мероприяти', 'событи']);
   const rest = tokenize(text).filter(w => !stop.has(w) && !/^\d{1,2}(:\d{2})?$/.test(w)).map(stem);
-  const parsed = { audience, vibe, setting, activity, intensity, price, times, weekdays, noise, hour, when, districts, outskirts, rest, restHard: rest, source: 'rules' };
+  // Возраст ребёнка: «с ребёнком 5 лет», «сыну 7», «ребенку 3 года» → события с маркировкой не старше
+  const ka = text.match(/(?:^|\s)(\d{1,2})\s*(?:лет|года|год)(?=\s|$)/) || (audience.includes('kids') ? text.match(/(?:сыну|дочке|дочери|ребенку|ребёнку)\s+(\d{1,2})(?=\s|$)/) : null);
+  const kidAge = ka && Number(ka[1]) <= 17 ? Number(ka[1]) : null;
+  if (kidAge != null && !audience.includes('kids')) audience.push('kids');
+  const parsed = { audience, vibe, setting, activity, intensity, price, times, weekdays, noise, hour, when, districts, outskirts, kidAge, rest: kidAge != null ? rest.filter(w => !/^\d+$/.test(w) && !/^(лет|год)/.test(w)) : rest, source: 'rules' };
+  parsed.restHard = parsed.rest;
   return { ...parsed, human: humanize(parsed) };
 }
 
@@ -177,7 +195,7 @@ export function parseQuery(q) {
 export function humanize(p) {
   const { audience = [], vibe = [], setting = [], activity = [], price = null, times = [], weekdays = [] } = p;
   const human = [];
-  if (audience.includes('kids')) human.push('с детьми'); if (audience.includes('solo')) human.push('одному'); if (audience.includes('couple')) human.push('вдвоём'); if (audience.includes('friends')) human.push('с друзьями'); if (audience.includes('family')) human.push('с семьёй'); if (audience.includes('tourist')) human.push('гостям города'); if (audience.includes('newcomer')) human.push('новичкам');
+  if (audience.includes('kids')) human.push(p.kidAge != null ? `ребёнку ${p.kidAge} ${p.kidAge % 10 === 1 && p.kidAge !== 11 ? 'год' : [2, 3, 4].includes(p.kidAge % 10) && ![12, 13, 14].includes(p.kidAge) ? 'года' : 'лет'}` : 'с детьми'); if (audience.includes('solo')) human.push('одному'); if (audience.includes('couple')) human.push('вдвоём'); if (audience.includes('friends')) human.push('с друзьями'); if (audience.includes('family')) human.push('с семьёй'); if (audience.includes('tourist')) human.push('гостям города'); if (audience.includes('newcomer')) human.push('новичкам');
   if (setting.includes('outdoor')) human.push('на улице'); if (setting.includes('water')) human.push('у воды'); if (setting.includes('food')) human.push('с едой');
   if (vibe.includes('calm')) human.push('спокойно'); if (vibe.includes('active')) human.push('активно'); if (vibe.includes('party')) human.push('вечеринка'); if (vibe.includes('smart')) human.push('познавательно'); if (vibe.includes('romantic')) human.push('романтично'); if (vibe.includes('creative')) human.push('творчество');
   weekdays.forEach(d => human.push(WEEKDAY_HUMAN[d]));
@@ -198,6 +216,7 @@ export function matchScore(parsed, tags, e) {
   const soft = parsed.soft || {};
   if (parsed.activity.length) { const w = soft.activity ? 1.5 : 3; want += w; if (parsed.activity.some(x => (tags.activity || []).includes(x))) got += w; } // любая из названных активностей
   overlap(parsed.audience, tags.audience, 2.5);
+  if (parsed.audience.includes('kids') && e?.category === 'kids') got += 1.5; // просили про детей — детский раздел выше всего остального
   overlap(parsed.setting, tags.setting, soft.setting ? 1 : 2);
   overlap(parsed.vibe, tags.vibe, soft.vibe ? 1 : 2.5);
   if (parsed.intensity) { want += 1; if (tags.intensity === parsed.intensity) got += 1; else if (parsed.intensity === 'low' && tags.intensity === 'low') got += 1; }
@@ -293,7 +312,7 @@ async function mergeLater(key, q, rules) {
       audience: arr('audience'), vibe: arr('vibe'), setting: arr('setting'), activity: arr('activity'),
       intensity: first.intensity || second.intensity, price: rules.price, // цена только из правил: «бесплатно» модели часто мерещится
       times: lead && p.times.length ? p.times : rules.times, weekdays: lead && p.weekdays.length ? p.weekdays : rules.weekdays, // время и день — явные слова, правила надёжнее
-      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
+      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, kidAge: rules.kidAge, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
       soft: lead ? {} : { activity: !rules.activity.length && p.activity.length > 0, vibe: !rules.vibe.length && p.vibe.length > 0, setting: !rules.setting.length && p.setting.length > 0, intensity: !rules.intensity && !!p.intensity, audience: !rules.audience.length && p.audience.length > 0 }, // догадки модели не отсекают события, а только поднимают подходящие
     };
     const usedModel = ['audience', 'vibe', 'setting', 'activity', 'times'].some(k => !rules[k].length && p[k].length) || (!rules.intensity && p.intensity) || p.rest.some(x => !rules.rest.includes(x));

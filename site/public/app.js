@@ -620,7 +620,8 @@
       el('span', { class: 'ico', html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' }),
       fq, el('div', { class: 'search-filters', 'data-filters': true }), el('button', { type: 'submit', class: 'go', 'aria-label': 'Найти' }, '→'));
     attachSuggest(fq, form, v => setQuery(v));
-    p.append(form, el('div', { class: 'feed-layout' }, el('div', { class: 'feed-main' }, (H.strip = el('div', { class: 'day-strip feed-strip' })), H.feed), H.calCol));
+    const calBtn = el('button', { type: 'button', class: 'day-pill cal-btn', title: 'Выбрать день или период', 'aria-label': 'Календарь', onclick: () => calendarSheet() }, el('span', { class: 'cal-ico', html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>' }), el('span', {}, 'даты'));
+    p.append(form, el('div', { class: 'feed-layout' }, el('div', { class: 'feed-main' }, el('div', { class: 'strip-row' }, calBtn, (H.strip = el('div', { class: 'day-strip feed-strip' }))), H.feed), H.calCol));
     renderQuick(); renderSide();
     fetchFeed();
   }
@@ -650,8 +651,7 @@
         el('b', {}, i === 0 ? 'Сегодня' : i === 1 ? 'Завтра' : `${WD[d.getDay()]} ${d.getDate()}`), el('span', {}, n ? `${n}` : '—')));
     }
     if (S.when === 'range' || S.when === 'week' || S.when === 'weekend') H.strip.append(el('button', { type: 'button', class: 'day-pill on', onclick: () => calendarSheet() }, el('b', {}, whenTitle().split(' · ')[0]), el('span', {}, 'период')));
-    H.strip.append(el('button', { type: 'button', class: 'day-pill tool', onclick: () => calendarSheet(), title: 'Выбрать день или период в календаре' }, el('b', {}, '📅'), el('span', {}, 'даты')),
-      el('button', { type: 'button', class: 'day-pill tool only-phone' + (S.calOpen ? ' on' : ''), title: 'Карта', onclick: ev => { S.calOpen = !S.calOpen; H.calCol.classList.toggle('open', S.calOpen); ev.currentTarget.classList.toggle('on', S.calOpen); if (S.calOpen) { H.calCol.scrollIntoView({ block: 'start', behavior: 'smooth' }); setTimeout(() => H.map?.invalidate(), 60); } } }, el('b', {}, '🗺️'), el('span', {}, 'карта')));
+    H.strip.append(el('button', { type: 'button', class: 'day-pill tool only-phone' + (S.calOpen ? ' on' : ''), title: 'Карта', onclick: ev => { S.calOpen = !S.calOpen; H.calCol.classList.toggle('open', S.calOpen); ev.currentTarget.classList.toggle('on', S.calOpen); if (S.calOpen) { H.calCol.scrollIntoView({ block: 'start', behavior: 'smooth' }); setTimeout(() => H.map?.invalidate(), 60); } } }, el('b', {}, '🗺️'), el('span', {}, 'карта')));
   }
   // Месячный календарь листом снизу: выбрать день или период жестом, потом лист закрывается
   function calendarSheet(draft = null, after = null) {
@@ -1400,7 +1400,7 @@
     const f = {};
     const input = (n, a = {}) => (f[n] = el('input', { name: n, ...a }));
     const select = (n, opts, val) => (f[n] = el('select', { name: n }, opts.map(([v, t]) => el('option', { value: v, selected: String(v) === String(val) }, t))));
-    const field = (label, node, req, help) => el('div', { class: 'field' }, el('label', {}, label, req ? el('i', {}, ' *') : null), node, help ? el('div', { class: 'help' }, help) : null);
+    const field = (label, node, req, help) => el('div', { class: 'field' }, el('label', {}, label, req === true ? el('i', {}, ' *') : req === 'opt' ? el('span', { class: 'opt-mark' }, ' · необязательно') : null), node, help ? el('div', { class: 'help' }, help) : null);
     const section = (num, title, sub, ...kids) => el('section', { class: 'nf-section' }, el('div', { class: 'nf-head' }, el('span', { class: 'nf-num' }, num), el('div', {}, el('h2', {}, title), sub ? el('p', {}, sub) : null)), ...kids);
     let kind = 'single';
 
@@ -1423,7 +1423,7 @@
       kind = sc.key; paintScen();
       if (sc.cat) { catSel.value = sc.cat; fillSubs(); if (sc.sub) subSel.value = sc.sub; syncDesign(); }
       renderSchedule(); renderPlaces(); updateSummary(); quality();
-    } }, el('span', { class: 'scen-emoji' }, sc.emoji), el('span', { class: 'scen-body' }, el('b', {}, sc.title), el('small', {}, sc.desc), el('em', {}, sc.hint))));
+    } }, el('span', { class: 'scen-emoji' }, sc.emoji), el('span', { class: 'scen-body' }, el('b', {}, sc.title), el('small', {}, sc.desc), el('em', {}, sc.hint), !isOrg && ORG_ONLY.has(sc.key) ? el('span', { class: 'scen-lock' }, '🔒 для организаций') : null)));
 
     // ---- 3. Расписание (зависит от сценария)
     const sched = el('div', { class: 'sched' });
@@ -1554,40 +1554,40 @@
       const sch = getSchedule(); const pls = getPlaces();
       if (!sch.times.length) return toast('Укажите время');
       const body = { kind, title: v('title'), cat: catSel.value, sub: subSel.value || null, date: sch.date, times: sch.times, duration: sch.duration, recurrence: sch.recurrence,
-        price: pls.price, capacity: pls.capacity, meta: pls.meta, keywords: kw.value, lang: f.lang.value, venue: v('venue'), address: v('address'), district: f.district.value, organizer: v('organizer'),
+        price: pls.price, capacity: pls.capacity, meta: pls.meta, keywords: kw.value, lang: f.lang.value, venue: v('venue'), address: v('address'), district: f.district.value, organizer: v('organizer') || me?.name || '',
         description: desc.value.trim(), video_url: video.value.trim() || null, age: Number(f.age.value), rules_ok: me?.rulesAccepted || !!f.rulesOk?.checked, with: WITH.map(([k]) => k).filter(k => f['w_' + k]?.checked), pushkin: f.pushkin.checked, registration: f.regExt.checked ? { type: 'external', url: v('url') } : { type: 'here' }, ...design.get() };
       const btn = form.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Публикуем…';
       try { const r = await api('/api/events', { method: 'POST', body }); facets = null; await loadMe(); toast(r.created > 1 ? `Создано событий: ${r.created}` : 'Опубликовано 🎉'); location.hash = r.created > 1 ? '#/cabinet' : `#/event/${r.first.slug}`; }
       catch (err) { btn.disabled = false; btn.textContent = 'Опубликовать'; toast(err.body?.message || 'Проверьте обязательные поля'); }
     } },
       section('1', 'Что планируете?', 'От этого зависят вопросы ниже — как на Авито, где квартира и телефон заполняются по-разному.', scenBox),
-      section('2', 'Что и где', 'Минимум для публикации: название и место. Остальное повышает позицию в поиске.',
+      section('2', 'Главное', 'Четыре поля — и событие можно публиковать. Остальное заполните ниже или позже в кабинете.',
         field('Название', input('title', { required: true, maxlength: 120, placeholder: 'Например, «Прокат велосипедов на набережной» или «Шахматы по средам»', oninput: () => { design.paint(); quality(); } }), true),
-        el('div', { class: 'grid2' }, field('Категория', catSel, true), field('Уточнение', subSel, false, 'Подкатегория сильно помогает поиску')),
+        el('div', { class: 'grid2' }, field('Категория', catSel, true), field('Уточнение', subSel, 'opt', 'Помогает поиску')),
         (() => {
           const ageSel = select('age', [[0, '0+ · для всех'], [6, '6+'], [12, '12+'], [16, '16+'], [18, '18+ · только взрослые']], 0);
           const kidsBox = (f.w_kids = el('input', { type: 'checkbox' }));
-          const kidsLbl = el('label', { class: 'toggle-check' }, kidsBox, el('span', {}, el('b', {}, '🧒 Можно с детьми'), el('small', {}, 'Покажем в подборках «С детьми» и по запросам «с ребёнком»')));
+          const kidsLbl = el('label', { class: 'toggle-check' }, kidsBox, el('span', {}, el('b', {}, '🧒 Можно с детьми'), el('small', {}, 'Покажем в подборках «С детьми»')));
           const sync = () => { const adult = Number(ageSel.value) >= 16; kidsBox.disabled = adult; if (adult) kidsBox.checked = false; kidsLbl.classList.toggle('off', adult); };
           ageSel.addEventListener('change', sync); sync();
-          return el('div', { class: 'grid2' }, field('Возраст', ageSel, true, 'Маркировка 0+…18+ обязательна по закону о защите детей от информации'), field('Дети', kidsLbl));
+          return el('div', { class: 'grid2' }, field('Возраст', ageSel, true, 'Маркировка по закону о защите детей'), field('Дети', kidsLbl, 'opt'));
         })(),
-        el('div', { class: 'grid2' }, field('Место', input('venue', { required: true, placeholder: 'Парк Горького, у главного входа', oninput: quality }), true), field('Адрес', input('address', { placeholder: 'ул. Николая Ершова, 1', oninput: quality }))),
-        el('div', { class: 'grid2' }, field('Район', select('district', ['Вахитовский', 'Советский', 'Ново-Савиновский', 'Приволжский', 'Кировский', 'Московский', 'Авиастроительный'].map(d => [d, d])), true), field('Организатор', input('organizer', { required: true, placeholder: 'Название клуба, студии, компании или ваше имя' }), true, 'Так будет называться ваша страница и кабинет'))),
+        el('div', { class: 'grid2' }, field('Место', input('venue', { required: true, placeholder: 'Парк Горького, у главного входа', oninput: quality }), true), field('Адрес', input('address', { placeholder: 'ул. Николая Ершова, 1', oninput: quality }), 'opt', 'Покажем на карте'))),
       section('3', 'Когда', null, sched),
       section('4', 'Цена и места', null, places),
-      section('5', 'Описание и ключевые слова', 'Чем больше напишете, тем выше карточка в поиске: ищут по названию, описанию, ключевым словам, месту.',
-        field('Описание', descEd.el, false, 'Минимум 80 символов, лучше 200+'),
-        field('Видео', video, false, 'Покажем плеер на странице события'),
-        field('Ключевые слова', kw, false, 'Как вас ищут гости: «сап», «новичкам», «с детьми», «на английском»'),
-        el('div', { class: 'quality' }, qBar, qText, qTips)),
-      section('6', 'Оформление', 'Обложка, тема и цвет кнопок — как у Luma.', design.el),
-      el('details', { class: 'nf-more' }, el('summary', {}, 'Дополнительно: язык, с кем идти, запись по ссылке'),
-        el('div', { class: 'grid2', style: 'margin-top:12px' }, field('Язык события', select('lang', [['ru', 'Русский'], ['tt', 'Татарский'], ['en', 'Английский']]), true)),
-        el('div', { class: 'field' }, el('label', {}, 'Кому подходит'), el('div', { class: 'checks' }, WITH.filter(([k]) => k !== 'kids').map(([k, t]) => el('label', {}, (f['w_' + k] = el('input', { type: 'checkbox', checked: true })), t)))),
-        el('div', { class: 'field' }, el('label', {}, 'Метки и запись'), el('div', { class: 'checks' }, el('label', {}, (f.pushkin = el('input', { type: 'checkbox' })), '🎫 Пушкинская карта'),
-          el('label', {}, (f.regHere = el('input', { type: 'radio', name: 'reg', checked: true })), 'Запись у нас'), el('label', {}, (f.regExt = el('input', { type: 'radio', name: 'reg' })), 'Запись по ссылке')),
-          input('url', { type: 'url', placeholder: 'https://… если запись по ссылке (Timepad, Qtickets, касса)', style: 'margin-top:10px' }))),
+      el('details', { class: 'nf-more' }, el('summary', {}, el('b', {}, 'Подробнее — можно заполнить позже'), el('span', {}, 'Описание, фото и оформление, район, организатор, язык, запись по ссылке. Чем подробнее, тем выше в поиске.')),
+        el('div', { class: 'nf-more-body' },
+          field('Описание', descEd.el, 'opt', 'Лучше 200+ символов: что будет, для кого, как найти вход'),
+          el('div', { class: 'grid2' }, field('Район', select('district', ['Вахитовский', 'Советский', 'Ново-Савиновский', 'Приволжский', 'Кировский', 'Московский', 'Авиастроительный'].map(d => [d, d])), 'opt'),
+            field('Организатор', input('organizer', { value: me?.name || '', placeholder: 'Название клуба, студии или ваше имя' }), 'opt', 'По умолчанию — имя из профиля')),
+          el('div', { class: 'grid2' }, field('Язык', select('lang', [['ru', 'Русский'], ['tt', 'Татарский'], ['en', 'Английский']]), 'opt'), field('Видео', video, 'opt', 'VK Видео, Rutube или YouTube')),
+          field('Ключевые слова', kw, 'opt', 'Как вас ищут гости: «сап», «новичкам», «с детьми»'),
+          el('div', { class: 'field' }, el('label', {}, 'Кому подходит', el('span', { class: 'opt-mark' }, ' · необязательно')), el('div', { class: 'checks' }, WITH.filter(([k]) => k !== 'kids').map(([k, t]) => el('label', {}, (f['w_' + k] = el('input', { type: 'checkbox', checked: true })), t)))),
+          el('div', { class: 'field' }, el('label', {}, 'Метки и запись', el('span', { class: 'opt-mark' }, ' · необязательно')), el('div', { class: 'checks' }, el('label', {}, (f.pushkin = el('input', { type: 'checkbox' })), '🎫 Пушкинская карта'),
+            el('label', {}, (f.regHere = el('input', { type: 'radio', name: 'reg', checked: true })), 'Запись у нас'), el('label', {}, (f.regExt = el('input', { type: 'radio', name: 'reg' })), 'Запись по ссылке')),
+            input('url', { type: 'url', placeholder: 'https://… если запись по ссылке (Timepad, Qtickets, касса)', style: 'margin-top:10px' })),
+          el('div', { class: 'field' }, el('label', {}, 'Оформление', el('span', { class: 'opt-mark' }, ' · необязательно')), design.el),
+          el('div', { class: 'quality' }, qBar, qText, qTips))),
       el('div', { class: 'nf-publish' }, summary, me?.rulesAccepted ? null : el('label', { class: 'toggle-check rules-check' }, (f.rulesOk = el('input', { type: 'checkbox', required: true })), el('span', {}, el('b', {}, 'Событие соответствует правилам площадки'), el('small', {}, 'Законное, с верной ценой и возрастом. ', el('a', { href: '#/rules', target: '_blank' }, 'Правила')))), el('button', { type: 'submit', class: 'btn btn-primary btn-lg btn-block' }, 'Опубликовать')),
       el('div', { class: 'help', style: 'text-align:center;margin-top:10px' }, 'Публикуя, вы соглашаетесь с правилами площадки. Всё сразу появится в подборе, управлять можно в кабинете.'));
     updateSummary(); quality();

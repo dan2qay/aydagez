@@ -1090,7 +1090,7 @@ svg { display: block; }
 .gate h1 { font-size: 26px; font-weight: 700; }
 .gate p { color: var(--muted); max-width: 520px; }
 .scen.locked { opacity: .55; position: relative; }
-.scen.locked::after { content: '🔒 для организаций'; position: absolute; right: 12px; top: 10px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.scen-lock { margin-top: 4px; font-size: 11px; font-weight: 600; color: var(--muted); }
 .dd-custom { display: flex; gap: 6px; align-items: center; padding: 8px 10px 4px; border-top: 1px solid var(--line); margin-top: 4px; font-size: 13px; color: var(--muted); }
 .dd-num { width: 92px; height: 34px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); font-size: 14px; }
 .pill-input { height: 40px; width: 150px; padding: 0 14px; border-radius: 999px; border: 1px dashed var(--line-strong); background: var(--surface); font-size: 14px; color: var(--fg); }
@@ -1301,3 +1301,21 @@ svg { display: block; }
 .day-pill.zero:hover { opacity: .8; }
 .feed-strip { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); padding-right: 40px; }
 @media (min-width: 901px) { .feed-side .side-map { margin-top: 0; } .feed-side .map { height: 360px; } }
+
+/* Форма: необязательные поля помечены, «Подробнее» — свёрнутый блок */
+.opt-mark { font-weight: 500; color: var(--faint); font-size: 12px; }
+.nf-more { margin-top: 26px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-l); background: var(--surface); }
+.nf-more summary { cursor: pointer; list-style: none; padding: 16px 18px; display: grid; gap: 2px; }
+.nf-more summary::-webkit-details-marker { display: none; }
+.nf-more summary b { font-size: 16px; }
+.nf-more summary b::after { content: ' ▾'; color: var(--muted); }
+.nf-more[open] summary b::after { content: ' ▴'; }
+.nf-more summary span { font-size: 13px; color: var(--muted); font-weight: 400; }
+.nf-more-body { padding: 4px 18px 18px; border-top: 1px solid var(--line); }
+/* Лента дат: календарь закреплён слева, дни прокручиваются */
+.strip-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 12px; }
+.strip-row .feed-strip { flex: 1; min-width: 0; margin: 0; }
+.day-pill.cal-btn { flex: 0 0 auto; min-width: 64px; border-color: var(--fg); background: var(--surface); color: var(--fg); place-items: center; }
+.day-pill.cal-btn .cal-ico { display: grid; place-items: center; }
+.day-pill.cal-btn:hover { background: var(--hover); }
+@media (max-width: 900px) { .strip-row .feed-strip { margin: 0 -20px 0 0; padding-right: 40px; } }

@@ -1192,6 +1192,7 @@ svg { display: block; }
 }
 @media (max-width: 900px) {
   /* На узких экранах группы кнопок по центру — ряд с переносом иначе выглядит рваным */
-  .pills, .hints, .checks, .org-actions, .org-tabs { justify-content: center; }
-  .hints.when-row { justify-content: flex-start; }
+  .pills, .hints, .checks, .org-actions, .org-tabs, .cab-head-actions, .cab-actions, .cab-head { justify-content: center; }
+  .cab-head { text-align: center; }
+  .cab-head-actions { width: 100%; }
 }

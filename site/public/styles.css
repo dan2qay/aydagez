@@ -47,6 +47,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; }
+html { scrollbar-gutter: stable; } /* полоса прокрутки не сдвигает страницу при смене высоты */
+body { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+#app { flex: 1 0 auto; }
 body { font-family: var(--font); font-size: 15px; line-height: 1.5; color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
@@ -393,8 +396,8 @@ svg { display: block; }
 
 /* ---------- Пошаговый подбор: экраны «Что» → «Когда» → результаты ---------- */
 .stage { padding-top: 28px; padding-bottom: 72px; }
-.screen { animation: screenIn .22s var(--ease); }
-@keyframes screenIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.screen { animation: screenIn .16s var(--ease); }
+@keyframes screenIn { from { opacity: 0; } to { opacity: 1; } }
 .stepper { display: flex; align-items: center; gap: 10px; margin: 8px 0 22px; font-size: 13px; color: var(--muted); font-weight: 500; }
 .stepper .stp { display: inline-flex; align-items: center; gap: 8px; }
 .stepper .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; border: 1px solid var(--line-strong); color: var(--muted); background: var(--surface); transition: background var(--t), color var(--t), border-color var(--t); }
@@ -1186,4 +1189,9 @@ svg { display: block; }
   .picks .card { flex: 0 0 78%; max-width: 300px; }
   .feed-title { flex-wrap: wrap; }
   .ai-strip { margin: 0 0 16px; }
+}
+@media (max-width: 900px) {
+  /* На узких экранах группы кнопок по центру — ряд с переносом иначе выглядит рваным */
+  .pills, .hints, .checks, .org-actions, .org-tabs { justify-content: center; }
+  .hints.when-row { justify-content: flex-start; }
 }

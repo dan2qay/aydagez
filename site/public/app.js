@@ -351,13 +351,15 @@
   }
 
   // Меняем только содержимое сцены, остальная страница не трогается
+  const showPlaceholder = root => root.append(el('div', { class: 'wrap page ph' }, el('div', { class: 'skeleton short', style: 'max-width:420px;height:40px;margin-bottom:16px' }), el('div', { class: 'skeleton' })));
+  const clearPlaceholder = () => { const n = document.querySelector('#app .ph'); if (n) n.remove(); };
   function renderScreen() {
     if (!H.stage) return;
     H.stage.innerHTML = '';
     const panel = el('div', { class: 'screen' });
     H.stage.append(panel);
     ({ what: screenWhat, sub: screenSub, mood: screenMood, search: screenSearch }[S.screen] || screenFeed)(panel);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (S.screen !== H.lastScreen) window.scrollTo(0, 0); H.lastScreen = S.screen; // мгновенно и только при смене экрана: плавная прокрутка выглядела как дёрганье
   }
   function stepper(active) {
     const items = [['what', 'Что'], ['when', 'Когда'], ['results', 'Выбрать']];
@@ -918,8 +920,10 @@
   // ---------- Страница события ----------
   async function renderEvent(slug) {
     const root = $('#app'); root.innerHTML = ''; const rid = routeId;
+    showPlaceholder(root); // пока грузим — заглушка той же высоты, чтобы подвал не прыгал
     let e;
     try { e = await api(`/api/events/${encodeURIComponent(slug)}`); if (rid !== routeId) return; } catch { if (rid !== routeId) return; root.append(el('div', { class: 'wrap page' }, el('a', { class: 'back', href: '#/' }, '← Назад'), el('div', { class: 'empty' }, el('div', { class: 'e' }, '🤷'), 'Такого события нет или оно уже прошло.'))); return; }
+    clearPlaceholder();
     const d = parseIso(e.date), t = new Date(e.start), end = new Date(t.getTime() + e.duration * 60000);
     const dur = e.duration >= 60 ? `${Math.floor(e.duration / 60)} ч${e.duration % 60 ? ` ${e.duration % 60} мин` : ''}` : `${e.duration} мин`;
     const fact = (ico, tt, s) => el('div', { class: 'fact' }, el('span', { class: 'ico' }, ico), el('div', {}, el('div', { class: 't' }, tt), el('div', { class: 's' }, s)));
@@ -1030,8 +1034,10 @@
   const urlOf = u => /^https?:/.test(u) ? u : 'https://' + u;
   async function renderOrg(slug) {
     const root = $('#app'); root.innerHTML = ''; const rid = routeId;
+    showPlaceholder(root); // пока грузим — заглушка той же высоты, чтобы подвал не прыгал
     let data;
     try { data = await api(`/api/organizers/${encodeURIComponent(slug)}`); if (rid !== routeId) return; } catch { if (rid !== routeId) return; root.append(el('div', { class: 'wrap page' }, el('a', { class: 'back', href: '#/' }, '← Назад'), el('div', { class: 'empty' }, 'Организатор не найден.'))); return; }
+    clearPlaceholder();
     const { organizer: o, events: list } = data;
     const kinds = (await loadConfig()).orgKinds || {}; const kind = kinds[o.kind];
     let followed = data.followed;
@@ -1123,7 +1129,9 @@
   // ---------- Кабинет пользователя ----------
   async function renderMy() {
     const root = $('#app'); root.innerHTML = ''; const rid = routeId;
+    showPlaceholder(root); // пока грузим — заглушка той же высоты, чтобы подвал не прыгал
     await loadMe(); if (rid !== routeId) return;
+    clearPlaceholder();
     const page = el('div', { class: 'wrap page page-narrow' }, el('a', { class: 'back', href: '#/' }, '← Назад к подбору'));
     page.append(el('div', { class: 'org-head' }, me?.avatar ? el('img', { class: 'org-avatar photo', src: me.avatar, alt: '' }) : el('div', { class: 'org-avatar', style: 'background:var(--ink);color:var(--on-ink)' }, me?.name ? me.name.trim().charAt(0).toUpperCase() : '🎒'),
       el('div', {}, el('h1', {}, me?.name ? me.name : 'Мои записи', me?.registered ? el('span', { class: 'tag ' + (me.accountType === 'org' ? 'pushkin' : 'solo'), style: 'margin-left:10px;vertical-align:middle' }, me.accountType === 'org' ? 'Организация' : 'Человек') : null),
@@ -1484,9 +1492,11 @@
   const money = n => `${Number(n || 0).toLocaleString('ru-RU')} ₽`;
   async function renderCabinet(params) {
     const root = $('#app'); root.innerHTML = ''; const rid = routeId;
+    showPlaceholder(root); // пока грузим — заглушка той же высоты, чтобы подвал не прыгал
     if (params?.get('join')) { try { const r = await api('/api/organizers/join', { method: 'POST', body: { code: params.get('join') } }); toast(`Вы в команде «${r.organizer.name}»`); cabState.org = r.organizer.id; } catch (err) { toast(err.body?.message || 'Код не подошёл'); } location.hash = '#/cabinet'; return; }
     let data;
     try { data = await api('/api/cabinet'); if (rid !== routeId) return; } catch { if (rid !== routeId) return; root.append(el('div', { class: 'wrap page' }, el('div', { class: 'empty' }, 'Кабинет недоступен.'))); return; }
+    clearPlaceholder();
     const kinds = data.kinds || {}, products = data.products || {}; _products = products;
     const page = el('div', { class: 'wrap page cab' });
     page.append(el('div', { class: 'cab-head' },

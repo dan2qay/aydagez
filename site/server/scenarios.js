@@ -41,6 +41,7 @@ export const SCENARIOS = [
   { q: 'чем заняться одному в воскресенье', expect: { audience: ['solo'], weekdays: [0] }, keywords: ['выставка', 'лекция'], check: { diverse: 3 } },
 
   // --- дети, пары, туристы ---
+  { q: 'отдохнуть с ребенком', expect: { audience: ['kids'], vibe: ['calm'] }, keywords: ['с детьми'], check: { diverse: 2 }, note: 'два слова плюс предлог — всё равно фраза, раз словари что-то поняли' },
   { q: 'куда сходить с ребёнком 5 лет днём', expect: { audience: ['kids'], times: ['day'] }, keywords: ['дети'], check: { diverse: 2 } },
   { q: 'романтическое свидание вечером', expect: { vibe: ['romantic'], times: ['evening'] }, keywords: ['джаз', 'ужин'] },
   { q: 'мы в казани впервые, что посмотреть', expect: { audience: ['tourist'] }, keywords: ['экскурсия'] },

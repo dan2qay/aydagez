@@ -1296,3 +1296,8 @@ svg { display: block; }
 .only-phone { display: none; }
 @media (min-width: 901px) { .feed-search { display: none; } .feed-layout { margin-top: 8px; } }
 @media (max-width: 900px) { .only-phone { display: grid; } .stage:has(.feed-search) { padding-top: 12px; } }
+/* Лента дней: пустые дни приглушены, справа мягкое затухание — видно, что ленту можно листать */
+.day-pill.zero { opacity: .45; }
+.day-pill.zero:hover { opacity: .8; }
+.feed-strip { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); padding-right: 40px; }
+@media (min-width: 901px) { .feed-side .side-map { margin-top: 0; } .feed-side .map { height: 360px; } }

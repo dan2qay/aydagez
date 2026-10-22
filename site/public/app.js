@@ -642,14 +642,15 @@
     if (!H.strip?.isConnected) return;
     H.strip.innerHTML = '';
     const sel = S.when === 'today' ? iso(today) : S.when === 'tomorrow' ? iso(addDays(today, 1)) : S.when === 'date' ? S.date : null;
-    H.strip.append(el('button', { type: 'button', class: 'day-pill' + (S.when === 'any' ? ' on' : ''), onclick: () => pickWhen('any') }, el('b', {}, 'Все'), el('span', {}, '·')));
+    const total = S.allCount ?? Object.values(S.days || {}).reduce((a, b) => a + b, 0);
+    H.strip.append(el('button', { type: 'button', class: 'day-pill' + (S.when === 'any' ? ' on' : ''), onclick: () => pickWhen('any') }, el('b', {}, 'Все'), el('span', {}, total ? String(total) : '—')));
     for (let i = 0; i < 14; i++) {
       const d = addDays(today, i), k = iso(d), n = S.days?.[k] || 0;
-      H.strip.append(el('button', { type: 'button', class: 'day-pill' + (sel === k ? ' on' : '') + (d.getDay() % 6 === 0 ? ' we' : ''), onclick: () => pickWhen(i === 0 ? 'today' : i === 1 ? 'tomorrow' : 'date', k) },
+      H.strip.append(el('button', { type: 'button', class: 'day-pill' + (sel === k ? ' on' : '') + (d.getDay() % 6 === 0 ? ' we' : '') + (!n && sel !== k ? ' zero' : ''), title: n ? `${n} ${plural(n, ['событие', 'события', 'событий'])}` : 'В этот день по запросу ничего нет', onclick: () => pickWhen(i === 0 ? 'today' : i === 1 ? 'tomorrow' : 'date', k) },
         el('b', {}, i === 0 ? 'Сегодня' : i === 1 ? 'Завтра' : `${WD[d.getDay()]} ${d.getDate()}`), el('span', {}, n ? `${n}` : '—')));
     }
     if (S.when === 'range' || S.when === 'week' || S.when === 'weekend') H.strip.append(el('button', { type: 'button', class: 'day-pill on', onclick: () => calendarSheet() }, el('b', {}, whenTitle().split(' · ')[0]), el('span', {}, 'период')));
-    H.strip.append(el('button', { type: 'button', class: 'day-pill tool only-phone', onclick: () => calendarSheet(), title: 'Выбрать даты' }, el('b', {}, '📅'), el('span', {}, 'даты')),
+    H.strip.append(el('button', { type: 'button', class: 'day-pill tool', onclick: () => calendarSheet(), title: 'Выбрать день или период в календаре' }, el('b', {}, '📅'), el('span', {}, 'даты')),
       el('button', { type: 'button', class: 'day-pill tool only-phone' + (S.calOpen ? ' on' : ''), title: 'Карта', onclick: ev => { S.calOpen = !S.calOpen; H.calCol.classList.toggle('open', S.calOpen); ev.currentTarget.classList.toggle('on', S.calOpen); if (S.calOpen) { H.calCol.scrollIntoView({ block: 'start', behavior: 'smooth' }); setTimeout(() => H.map?.invalidate(), 60); } } }, el('b', {}, '🗺️'), el('span', {}, 'карта')));
   }
   // Месячный календарь листом снизу: выбрать день или период жестом, потом лист закрывается
@@ -668,9 +669,8 @@
     H.calCol.classList.toggle('open', S.calOpen);
     H.mapHead = el('div', { class: 'side-map-head' }, 'Карта');
     if (!H.mapEl) H.mapEl = el('div', { class: 'map' });
-    H.calCol.append(freshCal(),
-      el('div', { class: 'side-map' }, H.mapHead, H.mapEl),
-      el('p', { class: 'side-hint' }, 'Точки и числа — сколько событий в этот день по вашему выбору. День или период в календаре сужают ленту и карту.'));
+    H.calCol.append(el('div', { class: 'side-map' }, H.mapHead, H.mapEl),
+      el('p', { class: 'side-hint' }, 'На карте — события выбранного дня. День или период выбираются в ленте дней над выдачей.'));
     requestAnimationFrame(armMap);
   }
   // ---------- Карта событий выбранного дня: Яндекс Карты, запасной вариант — Leaflet ----------
@@ -802,7 +802,7 @@
     let data;
     try { data = await api(`/api/events?${params(from, to)}`); H.ungroup = false; } catch { if (id === reqId) { H.feed.classList.remove('loading'); H.feed.innerHTML = ''; H.feed.append(el('div', { class: 'empty' }, el('div', { class: 'e' }, '⚠️'), el('b', {}, 'Сервер недоступен.'), ' Проверьте, запущена ли база данных.')); } return; }
     if (id !== reqId || !H.feed.isConnected) return;
-    S.days = data.days;
+    S.days = data.days; S.allCount = new Set((data.events || []).map(e => e.seriesKey || e.id)).size; // для «Все»: разные события, как в заголовке
     if (data.ai?.when && data.ai.dates) { // фраза задала даты — показываем это в кнопках периода
       const w = data.ai.when === 'dayafter' ? 'date' : data.ai.when;
       const changed = S.when !== w || (w === 'date' && S.date !== data.ai.dates.from) || (w === 'range' && (S.from !== data.ai.dates.from || S.to !== data.ai.dates.to));

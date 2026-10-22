@@ -26,6 +26,15 @@ export const ACTIVITIES = [
   { key: 'chess', cat: 'games', title: 'Шахматы', emoji: '♟️', terms: ['шахмат'] },
   { key: 'mafia', cat: 'games', title: 'Мафия', emoji: '🕵️', terms: ['мафи'] },
   { key: 'dnd', cat: 'games', title: 'D&D и ролевые', emoji: '🐉', terms: ['d&d', 'днд', 'dnd', 'ролев', 'подземел'] },
+  // Развлечения
+  { key: 'vr', cat: 'fun', title: 'VR', emoji: '🥽', terms: ['vr', 'виртуальн', 'кибер'] },
+  { key: 'quest', cat: 'fun', title: 'Квесты', emoji: '🔐', terms: ['квест', 'эскейп', 'иммерсив'] },
+  { key: 'lasertag', cat: 'fun', title: 'Лазертаг', emoji: '🔫', terms: ['лазертаг', 'пейнтбол'] },
+  { key: 'trampoline', cat: 'fun', title: 'Батуты', emoji: '🤸', terms: ['батут'] },
+  { key: 'bowling', cat: 'fun', title: 'Боулинг', emoji: '🎳', terms: ['боулинг', 'бильярд'] },
+  { key: 'karting', cat: 'fun', title: 'Картинг', emoji: '🏎️', terms: ['картинг'] },
+  { key: 'circus', cat: 'fun', title: 'Цирк и шоу', emoji: '🎪', terms: ['цирк', 'планетари', 'океанариум'] },
+  { key: 'boat', cat: 'fun', title: 'Теплоходы', emoji: '🚤', terms: ['теплоход', 'трамвайчик'] },
   // Музыка
   { key: 'concert', cat: 'music', title: 'Концерты', emoji: '🎸', terms: ['концерт', 'кавер', 'живая музыка'] },
   { key: 'jazz', cat: 'music', title: 'Джаз', emoji: '🎷', terms: ['джаз'] },

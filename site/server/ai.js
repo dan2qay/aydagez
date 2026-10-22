@@ -29,11 +29,11 @@ const VIBE = {
 const SETTING = {
   outdoor: ['гулять', 'прогул', 'улиц', 'парк', 'на свежем', 'воздух', 'природ', 'набережн', 'лес', 'озер', 'река', 'на улице', 'под открытым'],
   indoor: ['в помещении', 'тепл', 'дожд', 'в зале', 'внутри', 'крыш'],
-  water: ['вода', 'воде', 'сап', 'вейк', 'лодк', 'плав', 'бассейн', 'река', 'озер'],
+  water: ['вода', 'воде', 'сап', 'вейк', 'лодк', 'плав', 'бассейн', 'река', 'реке', 'озер', 'теплоход', 'казанк', 'волг', 'катер', 'яхт'],
   food: ['поесть', 'покушать', 'перекусить', 'ужин', 'еды', 'едой', 'кафе', 'ресторан', 'кофе', 'чай', 'бар', 'посидеть', 'посидим', 'столик'],
 };
 const NOISE = { loud: ['шумн', 'громк', 'танцпол', 'диджей', 'потусить', 'оторваться', 'живая музыка', 'концерт', 'караоке', 'вечеринк', 'ночной клуб', 'клубн', 'в баре', 'бар «'], quiet: ['тих', 'тишин', 'спокойн', 'без шума', 'уютн', 'медитац', 'библиотек', 'читальн', 'камерн', 'неспешн', 'поговорить'] };
-const NOISE_SUB = { loud: ['party', 'concert', 'karaoke', 'quiz', 'mafia', 'standup', 'market', 'team', 'climb'], quiet: ['yoga', 'book', 'lecture', 'exhibition', 'chess', 'walk', 'it', 'workshop', 'lang', 'cinema', 'theatre', 'classical', 'tour', 'run'] };
+const NOISE_SUB = { loud: ['party', 'concert', 'karaoke', 'quiz', 'mafia', 'standup', 'market', 'team', 'climb', 'vr', 'park', 'bowling', 'kidsclub'], quiet: ['yoga', 'book', 'lecture', 'exhibition', 'chess', 'walk', 'it', 'workshop', 'lang', 'cinema', 'theatre', 'classical', 'tour', 'run', 'anticafe', 'boat'] };
 const INTENSITY = { low: ['спокойн', 'тих', 'неспешн', 'легк', 'без нагрузки', 'расслаб', 'погулять', 'посидеть'], high: ['интенсив', 'тренировк', 'бег', 'пробежк', 'нагрузк', 'спорт', 'экстрим', 'потеть'] };
 const PRICE = { free: ['бесплатн', 'даром', 'без денег', 'недорог', 'дешев', 'бюджетн'], paid: ['дорог', 'премиум', 'vip'] };
 const TIME = { morning: ['утр', 'рано'], day: ['днем', 'днём', 'обед', 'после обеда'], evening: ['вечер', 'после работы', 'после пар'], night: ['ночь', 'ночн', 'до утра'], weekend: ['выходн', 'суббот', 'воскрес', 'уикенд'] };
@@ -51,6 +51,7 @@ const ACTIVITY = {
   cinema: ['кино', 'фильм', 'кинотеатр'], theatre: ['театр', 'спектакл'], standup: ['стендап', 'комик', 'посмеяться', 'юмор'], exhibition: ['выставк', 'музей', 'галере', 'картин'], tour: ['экскурс', 'истори', 'город'],
   concert: ['концерт', 'живая музыка', 'музык', 'группа'], jazz: ['джаз'], party: ['вечеринк', 'танц', 'диджей'], classical: ['классик', 'оркестр', 'филармон'], market: ['маркет', 'ярмарк', 'винил'], karaoke: ['караоке', 'попеть', 'спеть', 'петь', 'песн', 'вокал'],
   lecture: ['лекци', 'узнать'], it: ['айтишн', 'айти-', 'в айти', 'it-', 'программист', 'разработч', 'митап'], book: ['книг', 'чтен'], workshop: ['мастер', 'керамик', 'рисован', 'своими руками'],
+  vr: ['vr', 'виар', 'виртуальн', 'кибер', 'компьютерный клуб'], quest: ['квест', 'эскейп', 'перформанс', 'иммерсив'], park: ['батут', 'веревочн', 'верёвочн', 'лазертаг', 'пейнтбол', 'аттракцион', 'попрыгать'], bowling: ['боулинг', 'бильярд', 'картинг', 'гонк'], kidsclub: ['детский центр', 'игровой парк', 'город профессий', 'аниматор'], circus: ['цирк', 'планетари', 'океанариум', 'дельфинари', 'акул'], anticafe: ['антикафе', 'тайм-кафе', 'котокафе', 'с котами'], boat: ['теплоход', 'трамвайчик', 'по воде', 'по реке', 'сити-тур', 'автобусная экскурс', 'обзорн'],
   stol: ['ужин', 'стол на', 'за столом', 'незнаком'], lang: ['английск', 'татарск', 'язык', 'разговорн'], dating: ['знакомств', 'познаком', 'девушк', 'парн', 'половинк', 'одинок', 'отношен'], networking: ['нетворк', 'деловые знакомства', 'бизнес-завтрак'], newcomers: ['новичк', 'переех'],
 };
 // Подкатегория события → её «врождённые» признаки (для событий без ИИ-тегов и для сида).
@@ -81,6 +82,14 @@ const SUB_PROFILE = {
   workshop: { activity: ['workshop'], setting: ['indoor'], vibe: ['creative', 'calm'], intensity: 'low', audience: ['solo', 'couple', 'kids'] },
   theatre: { activity: ['theatre'], setting: ['indoor'], vibe: ['smart', 'romantic'], intensity: 'low', audience: ['couple', 'kids', 'solo'] },
   standup: { activity: ['standup'], setting: ['indoor', 'food'], vibe: ['party'], intensity: 'low', audience: ['friends', 'couple', 'solo'] },
+  vr: { activity: ['vr'], setting: ['indoor'], vibe: ['active', 'party'], intensity: 'high', audience: ['friends', 'kids'] },
+  quest: { activity: ['quest'], setting: ['indoor'], vibe: ['active', 'smart'], intensity: 'low', audience: ['friends', 'couple', 'kids'] },
+  park: { activity: ['park', 'sport'], setting: ['indoor'], vibe: ['active'], intensity: 'high', audience: ['kids', 'friends'] },
+  bowling: { activity: ['bowling'], setting: ['indoor', 'food'], vibe: ['party', 'active'], intensity: 'low', audience: ['friends', 'couple', 'kids'] },
+  kidsclub: { activity: ['kidsclub'], setting: ['indoor'], vibe: ['active'], intensity: 'low', audience: ['kids'] },
+  circus: { activity: ['circus'], setting: ['indoor'], vibe: ['calm', 'smart'], intensity: 'low', audience: ['kids', 'couple', 'tourist'] },
+  anticafe: { activity: ['anticafe', 'board'], setting: ['indoor', 'food'], vibe: ['calm'], intensity: 'low', audience: ['solo', 'friends', 'kids'] },
+  boat: { activity: ['boat', 'tour'], setting: ['outdoor', 'water'], vibe: ['calm', 'romantic'], intensity: 'low', audience: ['couple', 'kids', 'tourist', 'friends'] },
   cinema: { activity: ['cinema'], setting: ['indoor'], vibe: ['calm'], intensity: 'low', audience: ['couple', 'solo', 'friends'] },
   exhibition: { activity: ['exhibition'], setting: ['indoor'], vibe: ['calm', 'smart'], intensity: 'low', audience: ['couple', 'solo', 'kids', 'tourist'] },
   tour: { activity: ['tour', 'walk'], setting: ['outdoor'], vibe: ['smart', 'calm'], intensity: 'low', audience: ['tourist', 'kids', 'couple', 'newcomer'] },
@@ -90,13 +99,13 @@ const hasAny = (text, markers) => markers.some(m => text.includes(m));
 const pick = (text, dict) => Object.entries(dict).filter(([, markers]) => hasAny(text, markers)).map(([k]) => k);
 
 // «Сильная модель» для события: пока правила по подкатегории и тексту. Возвращает единую схему тегов.
-export const TAG_VERSION = 11;
+export const TAG_VERSION = 12;
 // Спортивные занятия: у события с любым из них есть и общий «sport»; в запросе конкретный вид вытесняет общий
 export const SPORT_ACTS = ['run', 'yoga', 'skate', 'bike', 'water', 'climb', 'team', 'football', 'volleyball', 'basketball', 'badminton', 'pingpong', 'roller', 'sup', 'wake', 'nordic', 'swim'];
 // Занятия, которые гость называет точно: если названо — показываем только его (волейбол ≠ теннис, кино ≠ театр)
-const STRICT_ACTS = new Set([...SPORT_ACTS.filter(a => !['water', 'team'].includes(a)), 'dnd', 'salsa', 'quiz', 'board', 'chess', 'mafia', 'cinema', 'theatre', 'standup', 'exhibition', 'concert', 'jazz', 'classical', 'karaoke', 'lecture', 'book', 'lang', 'stol', 'networking']);
+const STRICT_ACTS = new Set([...SPORT_ACTS.filter(a => !['water', 'team'].includes(a)), 'vr', 'quest', 'bowling', 'circus', 'anticafe', 'boat', 'kidsclub', 'dnd', 'salsa', 'quiz', 'board', 'chess', 'mafia', 'cinema', 'theatre', 'standup', 'exhibition', 'concert', 'jazz', 'classical', 'karaoke', 'lecture', 'book', 'lang', 'stol', 'networking']);
 // Подкатегории, куда спокойно идут всей семьёй (для тега family)
-const FAMILY_SUBS = new Set(['walk', 'skate', 'board', 'chess', 'stol', 'concert', 'jazz', 'classical', 'market', 'lecture', 'book', 'workshop', 'theatre', 'cinema', 'exhibition', 'tour', 'yoga']);
+const FAMILY_SUBS = new Set(['walk', 'skate', 'board', 'chess', 'stol', 'concert', 'jazz', 'classical', 'market', 'lecture', 'book', 'workshop', 'theatre', 'cinema', 'exhibition', 'tour', 'yoga', 'circus', 'kidsclub', 'park', 'bowling', 'anticafe', 'boat', 'quest']);
 const HOUR_FMT = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', hour: 'numeric', hourCycle: 'h23' });
 export function mskHour(d) { const n = Number(HOUR_FMT.format(d)); return Number.isNaN(n) ? d.getHours() : n % 24; }
 export function tagEvent(e) {
@@ -177,7 +186,7 @@ export function humanize(p) {
   if (p.outskirts) human.push('не в центре'); else if (p.districts?.length) human.push(...p.districts.map(k => { const d = DISTRICTS.find(x => x.key === k); return d?.center ? 'в центре' : (d?.label || k); }));
   if (p.hour) { const f = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`; human.push(p.hour.from === 0 ? `до ${f(p.hour.to)}` : p.hour.to >= 23 * 60 + 59 ? `после ${f(p.hour.from)}` : `${f(p.hour.from)}–${f(Math.min(p.hour.to, 23 * 60 + 59))}`); }
   if (price === 'free') human.push('бесплатно'); if (times.includes('weekend') && p.when !== 'weekend') human.push('выходные'); if (times.includes('evening')) human.push('вечером'); if (times.includes('morning')) human.push('утром'); if (times.includes('day')) human.push('днём'); if (times.includes('night')) human.push('ночью');
-  activity.forEach(a => human.push({ sport: 'спорт (разный)', walk: 'прогулка', run: 'бег', yoga: 'йога', skate: 'каток', bike: 'велосипед', water: 'на воде', football: 'футбол', volleyball: 'волейбол', basketball: 'баскетбол', badminton: 'бадминтон', pingpong: 'настольный теннис', roller: 'ролики', sup: 'сапы', wake: 'вейк', nordic: 'скандинавская ходьба', swim: 'плавание', dnd: 'D&D', salsa: 'сальса', team: 'игры с мячом', climb: 'скалодром', cinema: 'кино', theatre: 'театр', standup: 'стендап', quiz: 'квиз', board: 'настолки', chess: 'шахматы', concert: 'концерт', jazz: 'джаз', lecture: 'лекция', book: 'книги', workshop: 'мастер-класс', exhibition: 'выставка', tour: 'экскурсия', karaoke: 'попеть', stol: 'ужин с незнакомцами', lang: 'языковой клуб', dating: 'знакомства', it: 'ИТ-встречи', classical: 'классика', market: 'маркет', party: 'вечеринка', climb: 'скалодром', team: 'командный спорт', mafia: 'мафия', networking: 'нетворкинг', newcomers: 'новички' }[a] || a));
+  activity.forEach(a => human.push({ sport: 'спорт (разный)', vr: 'VR', quest: 'квест', park: 'батуты и лазертаг', bowling: 'боулинг и картинг', kidsclub: 'детский центр', circus: 'цирк и планетарий', anticafe: 'антикафе', boat: 'теплоход и сити-тур', walk: 'прогулка', run: 'бег', yoga: 'йога', skate: 'каток', bike: 'велосипед', water: 'на воде', football: 'футбол', volleyball: 'волейбол', basketball: 'баскетбол', badminton: 'бадминтон', pingpong: 'настольный теннис', roller: 'ролики', sup: 'сапы', wake: 'вейк', nordic: 'скандинавская ходьба', swim: 'плавание', dnd: 'D&D', salsa: 'сальса', team: 'игры с мячом', climb: 'скалодром', cinema: 'кино', theatre: 'театр', standup: 'стендап', quiz: 'квиз', board: 'настолки', chess: 'шахматы', concert: 'концерт', jazz: 'джаз', lecture: 'лекция', book: 'книги', workshop: 'мастер-класс', exhibition: 'выставка', tour: 'экскурсия', karaoke: 'попеть', stol: 'ужин с незнакомцами', lang: 'языковой клуб', dating: 'знакомства', it: 'ИТ-встречи', classical: 'классика', market: 'маркет', party: 'вечеринка', climb: 'скалодром', team: 'командный спорт', mafia: 'мафия', networking: 'нетворкинг', newcomers: 'новички' }[a] || a));
   return [...new Set(human)];
 }
 

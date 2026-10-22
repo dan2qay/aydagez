@@ -65,6 +65,15 @@ export const SCENARIOS = [
   { q: 'на свежем воздухе в субботу утром', expect: { setting: ['outdoor'], weekdays: [6], times: ['morning'] }, keywords: ['прогулка', 'пробежка'] },
   { q: 'дождь, хочется куда-то в помещение', expect: { setting: ['indoor'] }, keywords: ['музей', 'кино'], check: { diverse: 3 } },
   { q: 'выучить английский в разговорном клубе', expect: { activity: ['lang'] }, keywords: ['английский'] },
+
+  // --- развлечения: VR, квесты, батуты, цирк, теплоход ---
+  { q: 'поиграть в vr с друзьями', expect: { activity: ['vr'], audience: ['friends'] }, activityOnly: true, keywords: ['vr'], check: { allAct: 'vr' } },
+  { q: 'сходить на квест компанией', expect: { activity: ['quest'], audience: ['friends'] }, keywords: ['квест'] },
+  { q: 'куда сводить ребёнка попрыгать на батутах', expect: { activity: ['park'], audience: ['kids'] }, keywords: ['батуты'] },
+  { q: 'в цирк с детьми в выходные', expect: { activity: ['circus'], audience: ['kids'], when: 'weekend' }, activityOnly: true, keywords: ['цирк'] },
+  { q: 'покататься на теплоходе по казанке', expect: { activity: ['boat'], setting: ['water'] }, keywords: ['теплоход'] },
+  { q: 'боулинг с коллегами вечером', expect: { activity: ['bowling'], audience: ['friends'], times: ['evening'] }, activityOnly: true, keywords: ['боулинг'] },
+  { q: 'посидеть в антикафе одному', expect: { activity: ['anticafe'], audience: ['solo'], vibe: ['calm'] }, keywords: ['антикафе'] },
 ];
 
 // Самые похожие сценарии для подсказки модели: по общим основам слов, всегда с парой опорных примеров

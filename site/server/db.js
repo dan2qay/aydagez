@@ -169,6 +169,8 @@ export async function ensureSeed({ reseed = false } = {}) {
       WHEN name ILIKE '%студи%' OR name ILIKE '%школ%' OR name ILIKE '%йог%' OR name ILIKE '%прана%' OR name ILIKE '%альянс%' THEN 'studio'
       WHEN name ILIKE '%ск «%' OR name ILIKE '%арена%' OR name ILIKE '%скалодром%' OR name ILIKE '%олимп%' THEN 'sport'
       ELSE 'community' END WHERE kind IS NULL`);
+  await q(`UPDATE events SET category_key='fun', subcategory_key='anticafe' WHERE series_key='anticafe-day' AND subcategory_key<>'anticafe'`);
+  await q(`UPDATE organizers SET kind='fun' WHERE kind IS NOT NULL AND kind<>'fun' AND (name ILIKE '%warpoint%' OR name ILIKE '%colizeum%' OR name ILIKE '%клаустрофоб%' OR name ILIKE '%батут%' OR name ILIKE '%лазертаг%' OR name ILIKE '%картинг%' OR name ILIKE '%боулинг%' OR name ILIKE '%замания%' OR name ILIKE '%кидбург%' OR name ILIKE '%цирк%' OR name ILIKE '%планетарий%' OR name ILIKE '%океанариум%' OR name ILIKE '%котокафе%' OR name ILIKE '%речфлот%' OR name ILIKE '%сити-тур%' OR name ILIKE '%верёвочный%')`);
   if (reseed) await q(`DELETE FROM events WHERE source='seed'`);
   const today = new Date();
   const horizon = new Date(today); horizon.setDate(today.getDate() + 30);

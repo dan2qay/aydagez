@@ -155,8 +155,8 @@ async function registeredSet(clientId) {
 
 // Настроение: «спокойное» и «активное» — наборы подкатегорий для тех, кто не знает, чего хочет.
 const MOOD = {
-  calm: new Set(['yoga', 'chess', 'board', 'lang', 'book', 'lecture', 'workshop', 'jazz', 'classical', 'market', 'theatre', 'cinema', 'exhibition', 'tour', 'stol']),
-  active: new Set(['run', 'skate', 'team', 'climb', 'walk', 'quiz', 'mafia', 'party', 'concert', 'standup', 'dating', 'networking', 'newcomers', 'it']),
+  calm: new Set(['yoga', 'chess', 'board', 'lang', 'book', 'lecture', 'workshop', 'jazz', 'classical', 'market', 'theatre', 'cinema', 'exhibition', 'tour', 'stol', 'anticafe', 'circus', 'boat']),
+  active: new Set(['run', 'skate', 'team', 'climb', 'walk', 'quiz', 'mafia', 'party', 'concert', 'standup', 'dating', 'networking', 'newcomers', 'it', 'vr', 'quest', 'park', 'bowling', 'kidsclub']),
 };
 
 // ---------- API ----------

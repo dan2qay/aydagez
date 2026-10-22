@@ -38,7 +38,7 @@
   const LANGS = { ru: 'На русском', tt: 'На татарском', en: 'На английском' };
   const WITH = [['solo', 'Один'], ['duo', 'Вдвоём'], ['friends', 'С друзьями'], ['kids', 'С детьми']];
   const BUDGET = [['0', 'Бесплатно'], ['500', 'До 500 ₽'], ['1500', 'До 1 500 ₽']];
-  const CAT_GRAD = { sport: 'linear-gradient(135deg,#0ea5e9,#22c55e)', games: 'linear-gradient(135deg,#f59e0b,#ef4444)', social: 'linear-gradient(135deg,#8b5cf6,#ec4899)', music: 'linear-gradient(135deg,#4f46e5,#06b6d4)', knowledge: 'linear-gradient(135deg,#f97316,#facc15)', culture: 'linear-gradient(135deg,#e11d48,#7c3aed)' };
+  const CAT_GRAD = { fun: 'linear-gradient(135deg,#f43f5e,#8b5cf6)', sport: 'linear-gradient(135deg,#0ea5e9,#22c55e)', games: 'linear-gradient(135deg,#f59e0b,#ef4444)', social: 'linear-gradient(135deg,#8b5cf6,#ec4899)', music: 'linear-gradient(135deg,#4f46e5,#06b6d4)', knowledge: 'linear-gradient(135deg,#f97316,#facc15)', culture: 'linear-gradient(135deg,#e11d48,#7c3aed)' };
   const MOODS = [
     { key: 'calm', emoji: '🧘', title: 'Что-то спокойное', desc: 'лекции, кино, театр, настолки, джаз, выставки' },
     { key: 'active', emoji: '⚡', title: 'Что-то активное', desc: 'пробежки, квизы, вечеринки, стендап, знакомства' },
@@ -336,8 +336,8 @@
     if (facets) return;
     try {
       const d = await api(`/api/events?from=${iso(today)}&to=${iso(addDays(today, 14))}`);
-      const f = { cat: {}, sub: {}, mood: { calm: 0, active: 0, open: d.events.length } };
-      for (const e of d.events) { f.cat[e.category] = (f.cat[e.category] || 0) + 1; f.sub[e.sub] = (f.sub[e.sub] || 0) + 1; }
+      const f = { cat: {}, sub: {}, with: {}, withSub: {}, mood: { calm: 0, active: 0, open: d.events.length } };
+      for (const e of d.events) { f.cat[e.category] = (f.cat[e.category] || 0) + 1; f.sub[e.sub] = (f.sub[e.sub] || 0) + 1; for (const w of e.with || []) { f.with[w] = (f.with[w] || 0) + 1; (f.withSub[w] ||= {})[e.sub] = (f.withSub[w][e.sub] || 0) + 1; } }
       const [calm, active] = await Promise.all(['calm', 'active'].map(m => api(`/api/events?from=${iso(today)}&to=${iso(addDays(today, 14))}&mood=${m}`)));
       f.mood.calm = calm.events.length; f.mood.active = active.events.length;
       facets = f;
@@ -347,7 +347,7 @@
   const cnt = n => n ? `${n} ${plural(n, ['событие', 'события', 'событий'])} за 2 недели` : 'пока ничего';
   function updateCounts() { // только цифры под плитками
     if (!H.stage) return;
-    for (const n of H.stage.querySelectorAll('[data-count]')) { const [kind, key] = n.dataset.count.split(':'); n.textContent = cnt(facets?.[kind]?.[key] || 0); }
+    for (const n of H.stage.querySelectorAll('[data-count]')) n.textContent = (n.dataset.short ? cntShort : cnt)(countOf(n.dataset.count));
   }
 
   // Меняем только содержимое сцены, остальная страница не трогается
@@ -388,6 +388,59 @@
     }, 42);
     return input;
   }
+  // Подборки «с кем» и разделы по интересам: плитки как в Spotify — нажал, под рядом раскрылись блоки «Все» + уточнения
+  const COLLECTIONS = [
+    { key: 'kids', emoji: '👨‍👩‍👧', title: 'С детьми', desc: 'цирк, батуты, детские центры, экскурсии, каток', grad: 'linear-gradient(135deg,#fb7185,#f59e0b)', subs: ['circus', 'kidsclub', 'park', 'tour', 'skate', 'boat', 'theatre', 'workshop', 'exhibition', 'anticafe', 'walk', 'quest'] },
+    { key: 'friends', emoji: '🧑‍🤝‍🧑', title: 'С друзьями', desc: 'квизы, VR, квесты, боулинг, вечеринки', grad: 'linear-gradient(135deg,#a855f7,#3b82f6)', subs: ['quiz', 'vr', 'quest', 'bowling', 'park', 'team', 'mafia', 'party', 'concert', 'standup', 'board', 'boat'] },
+    { key: 'duo', emoji: '💞', title: 'Вдвоём', desc: 'кино, джаз, театр, теплоход, мастер-классы', grad: 'linear-gradient(135deg,#ec4899,#f43f5e)', subs: ['cinema', 'theatre', 'jazz', 'boat', 'tour', 'exhibition', 'workshop', 'classical', 'quest', 'bowling', 'skate', 'circus'] },
+    { key: 'solo', emoji: '🙋', title: 'Одному', desc: 'пробежки, лекции, настолки, новые люди', grad: 'linear-gradient(135deg,#14b8a6,#0ea5e9)', subs: ['run', 'yoga', 'lecture', 'book', 'lang', 'stol', 'newcomers', 'board', 'exhibition', 'anticafe', 'climb', 'cinema'] },
+  ];
+  const WITH_LABEL = { kids: '👨‍👩‍👧 С детьми', friends: '🧑‍🤝‍🧑 С друзьями', duo: '💞 Вдвоём', solo: '🙋 Одному', tourist: '🧳 Гостям города' };
+  const subAny = k => { for (const c of taxonomy) { const s = c.subs.find(x => x.key === k); if (s) return { ...s, cat: c.key }; } return null; };
+  const cntShort = n => n ? `${n} ${plural(n, ['событие', 'события', 'событий'])}` : 'пока ничего';
+  function browseGrid() {
+    const grid = el('div', { class: 'opts browse' });
+    const tiles = [
+      ...COLLECTIONS.map(c => ({ kind: 'with', ...c })),
+      ...taxonomy.map(c => ({ kind: 'cat', key: c.key, emoji: c.emoji, title: c.title, desc: c.subs.slice(0, 4).map(s => s.title.toLowerCase()).join(', '), grad: CAT_GRAD[c.key] || CAT_GRAD.culture })),
+    ];
+    const pick = (t, sub) => {
+      S.q = ''; $('#nav-q').value = ''; S.mood = null; S.cats = []; S.subs = []; S.via = 'flow'; S.when = 'any';
+      if (t.kind === 'with') { S.withWhom = t.key; S.cat = sub ? sub.cat : null; S.sub = sub ? sub.key : null; }
+      else { S.withWhom = ''; S.cat = t.key; S.sub = sub ? sub.key : null; }
+      track('browse_pick', { tile: t.key, sub: sub?.key || null });
+      persist(); go('when');
+    };
+    const block = (emoji, title, countKey, grad, onclick) => el('button', { type: 'button', class: 'opt sm', onclick },
+      el('span', { class: 'opt-ico', style: `background:${grad}` }, emoji),
+      el('span', { class: 'opt-body' }, el('b', {}, title), el('small', { 'data-count': countKey, 'data-short': '1' }, facets ? cntShort(countOf(countKey)) : '')));
+    const expandFor = t => {
+      const subs = t.kind === 'with' ? t.subs.map(subAny).filter(Boolean) : (catOf(t.key)?.subs || []).map(s => ({ ...s, cat: t.key }));
+      const blocks = [block(t.emoji, t.kind === 'with' ? `Все: ${t.title.toLowerCase()}` : `Всё: ${t.title.toLowerCase()}`, `${t.kind}:${t.key}`, t.grad, () => pick(t, null))];
+      for (const s of subs) blocks.push(block(s.emoji, s.title, t.kind === 'with' ? `withsub:${t.key}:${s.key}` : `sub:${s.key}`, CAT_GRAD[s.cat] || t.grad, () => pick(t, s)));
+      return el('div', { class: 'opt-expand' }, el('div', { class: 'opt-expand-grid' }, blocks));
+    };
+    const paint = () => {
+      grid.innerHTML = '';
+      for (const t of tiles) {
+        const open = S.openTile === t.key;
+        grid.append(el('button', { type: 'button', class: 'opt tile' + (open ? ' on' : ''), 'aria-expanded': String(open), onclick: () => { S.openTile = open ? null : t.key; paint(); if (!open) setTimeout(() => grid.querySelector('.opt-expand')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30); } },
+          el('span', { class: 'opt-ico', style: `background:${t.grad}` }, t.emoji),
+          el('span', { class: 'opt-body' }, el('b', {}, t.title), el('small', {}, t.desc)),
+          el('span', { class: 'opt-n', 'data-count': `${t.kind}:${t.key}` }, facets ? cnt(countOf(`${t.kind}:${t.key}`)) : ''),
+          el('span', { class: 'chev' }, open ? '▴' : '▾')));
+        if (open) grid.append(expandFor(t));
+      }
+    };
+    paint();
+    return grid;
+  }
+  function countOf(key) { // 'cat:sport' | 'sub:run' | 'with:kids' | 'withsub:kids:tour'
+    if (!facets) return 0;
+    const [kind, a, b] = key.split(':');
+    if (kind === 'withsub') return facets.withSub?.[a]?.[b] || 0;
+    return facets[kind]?.[a] || 0;
+  }
   function screenWhat(p) {
     // 1. Поиск — первая точка входа
     const q = livePlaceholder(el('input', { type: 'search', placeholder: 'Кино, пробежка, квиз, английский…', value: S.q, 'aria-label': 'Поиск событий', enterkeyhint: 'search', autocomplete: 'off' }));
@@ -405,13 +458,10 @@
       (() => { const row = el('div', { class: 'hints when-row' }); const paint = () => { row.innerHTML = ''; row.append(el('span', { class: 'hints-label' }, 'Когда:'), ...[['today', 'Сегодня'], ['tomorrow', 'Завтра'], ['weekend', 'Выходные'], ['week', 'На неделе'], ['any', 'Все дни']].map(([k, t]) => el('button', { type: 'button', class: 'chip' + (S.when === k ? ' on' : ''), onclick: () => { S.when = k; persist(); paint(); track('when_pick', { when: k, where: 'home' }); } }, t))); }; paint(); return row; })(),
       el('div', { class: 'hints' }, el('button', { type: 'button', class: 'chip chip-link', onclick: () => filtersModal() }, `⚙️ Фильтры${activeFilterCount(S) ? ' · ' + activeFilterCount(S) : ''}`)));
 
-    // 2. Интересы
+    // 2. С кем и что: плитки раскрываются списком блоков (как жанры в Spotify)
     const cats = el('section', { class: 'entry-block' },
-      el('div', { class: 'entry-head' }, el('h2', {}, 'Или выберите интерес'), el('span', { class: 'meta' }, 'дальше уточним и спросим, когда вам удобно')),
-      el('div', { class: 'opts' }, taxonomy.map(c => el('button', { type: 'button', class: 'opt', onclick: () => { S.cat = c.key; S.sub = null; S.mood = null; S.cats = []; S.via = 'flow'; S.q = ''; $('#nav-q').value = ''; go('sub'); } },
-        el('span', { class: 'opt-ico', style: `background:${CAT_GRAD[c.key]}` }, c.emoji),
-        el('span', { class: 'opt-body' }, el('b', {}, c.title), el('small', {}, c.subs.slice(0, 4).map(s => s.title.toLowerCase()).join(', '))),
-        el('span', { class: 'opt-n', 'data-count': `cat:${c.key}` }, facets ? cnt(facets.cat[c.key] || 0) : '')))),
+      el('div', { class: 'entry-head' }, el('h2', {}, 'Или выберите, с кем и что'), el('span', { class: 'meta' }, 'нажмите плитку — раскроем, что внутри')),
+      browseGrid(),
       ghost('✨', 'Подобрать по настроению', 'Спокойно, активно или сюрприз — три варианта за 10 секунд', () => go('mood')));
 
     // 3. Организаторам

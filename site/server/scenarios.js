@@ -101,6 +101,7 @@ export const SCENARIOS = [
   { q: 'волебол', expect: { activity: ['volleyball'] }, activityOnly: true, keywords: ['волейбол'] },
   { q: 'с ребонком в выхдные', expect: { audience: ['kids'], when: 'weekend' }, keywords: [] },
   { q: 'концерт до 1000 рублй', expect: { activity: ['concert'], pmax: 1000 }, keywords: ['концерт'] },
+  { q: 'хотим попеть с дрзьми', expect: { activity: ['karaoke'], audience: ['friends'], fixed: 'хотим попеть с друзьями' }, keywords: ['караоке'], note: 'пропущенная буква в «друзьями»' },
   { q: 'Гильдия настолки', expect: { activity: ['board'] }, keywords: ['гильдия'], note: 'название площадки не «исправляется»' },
 
   // --- развлечения: VR, квесты, батуты, цирк, теплоход ---

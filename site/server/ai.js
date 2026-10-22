@@ -255,7 +255,7 @@ export function matchScore(parsed, tags, e) {
   const overlap = (a, b, w) => { if (!a.length) return; want += w; const inter = a.filter(x => (b || []).includes(x)).length; got += w * (inter / a.length); };
   const soft = parsed.soft || {};
   if (parsed.activity.length) { const w = soft.activity ? 1.5 : 3; want += w; if (parsed.activity.some(x => (tags.activity || []).includes(x))) got += w; } // любая из названных активностей
-  overlap(parsed.audience, tags.audience, 2.5);
+  overlap(parsed.audience, tags.audience, soft.audience ? 1 : 2.5); // догадка модели про «с кем» — слабый признак
   if (parsed.audience.includes('kids') && e?.category === 'kids') got += 1.5; // просили про детей — детский раздел выше всего остального
   overlap(parsed.setting, tags.setting, soft.setting ? 1 : 2);
   overlap(parsed.vibe, tags.vibe, soft.vibe ? 1 : 2.5);

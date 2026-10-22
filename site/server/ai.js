@@ -99,7 +99,7 @@ const hasAny = (text, markers) => markers.some(m => text.includes(m));
 const pick = (text, dict) => Object.entries(dict).filter(([, markers]) => hasAny(text, markers)).map(([k]) => k);
 
 // «Сильная модель» для события: пока правила по подкатегории и тексту. Возвращает единую схему тегов.
-export const TAG_VERSION = 12;
+export const TAG_VERSION = 13;
 // Спортивные занятия: у события с любым из них есть и общий «sport»; в запросе конкретный вид вытесняет общий
 export const SPORT_ACTS = ['run', 'yoga', 'skate', 'bike', 'water', 'climb', 'team', 'football', 'volleyball', 'basketball', 'badminton', 'pingpong', 'roller', 'sup', 'wake', 'nordic', 'swim'];
 // Занятия, которые гость называет точно: если названо — показываем только его (волейбол ≠ теннис, кино ≠ театр)
@@ -316,7 +316,10 @@ export async function tagEventSmart(e) {
     const p = sanitize(j);
     if (!hasAnySignal(p)) return rules;
     const audience = [...new Set([...p.audience, ...rules.audience.filter(a => ['solo', 'couple', 'kids'].includes(a) && (e.with || []).length)])];
-    return { ...rules, audience, vibe: p.vibe.length ? p.vibe : rules.vibe, setting: p.setting.length ? p.setting : rules.setting, activity: [...new Set([...p.activity, ...rules.activity])],
+    // Конкретные занятия от модели — только те, что подтверждены текстом события: аренда зала «для футбола» не должна становиться волейболом и бадминтоном
+    const text = normalize([e.title, e.description, (e.keywords || []).join(' '), e.subTitle, e.venue].join(' '));
+    const modelActs = p.activity.filter(a => !STRICT_ACTS.has(a) || hasAny(text, ACTIVITY[a] || []));
+    return { ...rules, audience, vibe: p.vibe.length ? p.vibe : rules.vibe, setting: p.setting.length ? p.setting : rules.setting, activity: [...new Set([...modelActs, ...rules.activity])],
       intensity: p.intensity || rules.intensity, summary: typeof j.summary === 'string' ? j.summary.slice(0, 120) : rules.summary, model: models.strong() };
   } catch { return rules; }
 }

@@ -935,10 +935,14 @@ try {
   // Фоновое обогащение: базовые обложки и ИИ-теги для событий без них
   setTimeout(async () => {
     try {
-      const { rows } = await q(`${EVENT_SQL} WHERE (e.ai_tags = '{}'::jsonb OR COALESCE((e.ai_tags->>'v')::int, 0) < ${TAG_VERSION}) AND e.start_at > now() - interval '1 day' LIMIT 5000`);
       let n = 0;
-      for (const r of rows) { const e = serialize(r); await q(`UPDATE events SET ai_tags=$1 WHERE id=$2`, [JSON.stringify(tagEvent(e)), e.id]); n++; }
-      if (n) { console.log(`[ai] тегов записано: ${n}`); invalidate(); }
+      for (let pass = 0; pass < 30; pass++) { // порциями, пока не останется событий со старой версией разметки
+        const { rows } = await q(`${EVENT_SQL} WHERE (e.ai_tags = '{}'::jsonb OR COALESCE((e.ai_tags->>'v')::int, 0) < ${TAG_VERSION}) AND e.start_at > now() - interval '1 day' LIMIT 1000`);
+        if (!rows.length) break;
+        for (const r of rows) { const e = serialize(r); await q(`UPDATE events SET ai_tags=$1 WHERE id=$2`, [JSON.stringify(tagEvent(e)), e.id]); n++; }
+        invalidate();
+      }
+      if (n) console.log(`[ai] тегов записано: ${n}`);
     } catch (err) { console.warn('[ai] ошибка тегирования:', err.message); }
     if (llmEnabled() && process.env.LLM_RETAG !== '0') {
       try {

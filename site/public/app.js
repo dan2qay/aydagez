@@ -455,7 +455,6 @@
     attachSuggest(q, heroForm, v => setQuery(v));
     const hero = el('section', { class: 'hero' },
       el('h1', { class: 'hero-title' }, 'Куда сходить в Казани?'),
-      el('p', { class: 'hero-sub' }, el('span', { class: 'only-wide' }, 'Напишите в строке сверху своими словами — поймём фразу и опечатки. '), el('span', { class: 'only-narrow' }, 'Напишите своими словами — поймём фразу и опечатки. '), 'Например: ', el('button', { type: 'button', class: 'example-link', onclick: useExample }, `«${example}»`)),
       heroForm,
       (() => { const row = el('div', { class: 'hints when-row' }); const paint = () => { row.innerHTML = ''; row.append(el('span', { class: 'hints-label' }, 'Когда:'), ...[['today', 'Сегодня'], ['tomorrow', 'Завтра'], ['weekend', 'Выходные'], ['week', 'На неделе'], ['any', 'Все дни']].map(([k, t]) => el('button', { type: 'button', class: 'chip' + (S.when === k ? ' on' : ''), onclick: () => { S.when = k; persist(); paint(); track('when_pick', { when: k, where: 'home' }); } }, t))); }; paint(); return row; })(),
       el('div', { class: 'hints' }, el('button', { type: 'button', class: 'chip chip-link', onclick: () => filtersModal() }, `⚙️ Фильтры${activeFilterCount(S) ? ' · ' + activeFilterCount(S) : ''}`)));
@@ -1045,7 +1044,7 @@
     const followBtn = el('button', { type: 'button' });
     const setFollow = () => { followBtn.textContent = followed ? '✓ Вы подписаны' : '+ Подписаться'; followBtn.className = 'btn ' + (followed ? 'btn-outline' : 'btn-primary'); };
     setFollow();
-    followBtn.addEventListener('click', async () => { try { const r = await api(`/api/organizers/${o.id}/follow`, { method: followed ? 'DELETE' : 'POST' }); followed = r.followed; setFollow(); toast(followed ? 'Новые события попадут в ваш дайджест' : 'Подписка отменена'); loadMe(); } catch { toast('Не получилось'); } });
+    followBtn.addEventListener('click', async () => { try { const r = await api(`/api/organizers/${o.id}/follow`, { method: followed ? 'DELETE' : 'POST' }); followed = r.followed; setFollow(); toast(followed ? 'Будем показывать новые события этой организации выше' : 'Подписка отменена'); loadMe(); } catch { toast('Не получилось'); } });
     const head = el('div', { class: 'orgp-head' },
       el('div', { class: 'orgp-cover', style: o.cover ? `background-image:url(${o.cover})` : `background:${grad}` }),
       el('div', { class: 'orgp-id' },
@@ -1151,7 +1150,7 @@
       if (my.has(c.key)) my.delete(c.key); else my.add(c.key); ev.currentTarget.classList.toggle('on', my.has(c.key));
       try { await api('/api/me', { method: 'PATCH', body: { interests: [...my] } }); } catch {}
     } }, `${c.emoji} ${c.title}`)));
-    page.append(el('div', { class: 'section' }, el('h3', {}, 'Мои интересы'), el('p', { class: 'help', style: 'margin-bottom:10px' }, 'Отметьте, что вам близко — учтём в подборе и дайджесте.'), chips));
+    page.append(el('div', { class: 'section' }, el('h3', {}, 'Мои интересы'), el('p', { class: 'help', style: 'margin-bottom:10px' }, 'Отметьте, что вам близко — учтём в подборе.'), chips));
     if (!me?.isOrganizer) page.append(el('div', { class: 'callout', style: 'margin-top:24px' }, el('span', { class: 'e' }, '🎪'), el('div', {}, el('b', {}, 'Проводите события? '), el('a', { href: '#/new', style: 'font-weight:600;text-decoration:underline' }, 'Добавьте первое'), ' — и здесь появится кабинет организатора.')));
     root.append(page);
   }
@@ -1881,7 +1880,7 @@
   // ---------- Загрузка, подвал, роутер ----------
   async function loadMe() { try { me = await api('/api/me'); renderMe(); } catch { me = null; } }
   function initFooter() {
-    const form = $('#digest-form');
+    const form = $('#digest-form'); if (!form) return;
     form.addEventListener('submit', async ev => { ev.preventDefault(); const v = $('#digest-email').value.trim(); if (!v) return; try { await api('/api/digest', { method: 'POST', body: { email: v } }); form.replaceWith(el('div', { class: 'digest ok' }, `✓ Подписали ${v}. Первый выпуск — 19 ноября.`)); toast('Подписка оформлена'); } catch { toast('Проверьте адрес почты'); } });
   }
   let routeId = 0;

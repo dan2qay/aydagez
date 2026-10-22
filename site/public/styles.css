@@ -1196,3 +1196,9 @@ svg { display: block; }
   .cab-head { text-align: center; }
   .cab-head-actions { width: 100%; }
 }
+
+/* Соцсети в подвале: иконки в стиле кнопок сайта */
+.social { margin-top: 12px; display: flex; gap: 10px; }
+.social a { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); display: grid; place-items: center; color: var(--fg); transition: border-color var(--t), transform var(--t) var(--ease), background var(--t); }
+.social a:hover { border-color: var(--fg); background: var(--hover); transform: translateY(-1px); }
+@media (max-width: 900px) { .social { justify-content: center; } .footer-col { text-align: center; } .footer-brand { justify-content: center; } }

@@ -94,6 +94,15 @@ export const SCENARIOS = [
   { q: 'боулинг на 2 часа', expect: { activity: ['bowling'], hour: null }, keywords: ['боулинг'], note: '«на 2 часа» — длительность, не время' },
   { q: 'новые сапоги', expect: {}, not: { activity: ['sup', 'water'] }, keywords: [], check: { allowEmpty: true }, note: 'сапог в афише нет — пустая выдача честнее, чем сапы' },
 
+  // --- опечатки и раскладка ---
+  { q: 'квиз в четвер веечром', expect: { activity: ['quiz'], weekdays: [4], times: ['evening'], fixed: 'квиз в четверг вечером' }, keywords: ['квиз'], note: 'опечатки в днях и времени суток' },
+  { q: 'rdbp с друзьями', expect: { activity: ['quiz'], audience: ['friends'] }, keywords: ['квиз'], note: 'английская раскладка' },
+  { q: 'кнно завтра', expect: { activity: ['cinema'], when: 'tomorrow' }, keywords: ['кино'] },
+  { q: 'волебол', expect: { activity: ['volleyball'] }, activityOnly: true, keywords: ['волейбол'] },
+  { q: 'с ребонком в выхдные', expect: { audience: ['kids'], when: 'weekend' }, keywords: [] },
+  { q: 'концерт до 1000 рублй', expect: { activity: ['concert'], pmax: 1000 }, keywords: ['концерт'] },
+  { q: 'Гильдия настолки', expect: { activity: ['board'] }, keywords: ['гильдия'], note: 'название площадки не «исправляется»' },
+
   // --- развлечения: VR, квесты, батуты, цирк, теплоход ---
   { q: 'поиграть в vr с друзьями', expect: { activity: ['vr'], audience: ['friends'] }, activityOnly: true, keywords: ['vr'], check: { allAct: 'vr' } },
   { q: 'сходить на квест компанией', expect: { activity: ['quest'], audience: ['friends'] }, keywords: ['квест'] },

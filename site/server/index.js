@@ -228,7 +228,7 @@ app.get('/api/events', async (req, res, next) => {
         if (parsed.times.length) found = found.filter(e => parsed.times.some(t => t === 'weekend' ? true : e.aiTags?.time === t || (e.kind === 'open' && t === openCovers(e)))); // «вечером» не должно превращаться в 10 утра
       }
       pool = found;
-      aiInfo = { parsed: { audience: parsed.audience, vibe: parsed.vibe, setting: parsed.setting, activity: parsed.activity, intensity: parsed.intensity, price: parsed.price, times: parsed.times, weekdays: parsed.weekdays }, human: parsed.human, fallback, source: parsed.source || 'rules', pending: !!parsed.pending, ungroup: !!(parsed.hour || parsed.times.length), when: parsed.when || null, dates: parsed.dates ? { from: parsed.dates.from, to: parsed.dates.to } : parsed.when ? dateRangeFor(parsed.when) : null, districts: parsed.districts || [], words: parsed.restHard || [], segments: parsed.segments || [] };
+      aiInfo = { parsed: { audience: parsed.audience, vibe: parsed.vibe, setting: parsed.setting, activity: parsed.activity, intensity: parsed.intensity, price: parsed.price, times: parsed.times, weekdays: parsed.weekdays }, human: parsed.human, fallback, source: parsed.source || 'rules', pending: !!parsed.pending, ungroup: !!(parsed.hour || parsed.times.length), when: parsed.when || null, dates: parsed.dates ? { from: parsed.dates.from, to: parsed.dates.to } : parsed.when ? dateRangeFor(parsed.when) : null, districts: parsed.districts || [], words: parsed.restHard || [], segments: parsed.segments || [], fixed: parsed.fixed || null };
     } else if (query.trim()) {
       const r = search(query, docs, vocab);
       corrected = r.corrected; scores = r.hits;

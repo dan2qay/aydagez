@@ -172,7 +172,7 @@ const segmentQuery = makeSegmenter({ gazetteer: GAZETTEER, stop: QUERY_STOP });
 
 // «Слабая модель» для запроса гостя: сегменты → признаки, даты, время, цена, исключения.
 export function parseQuery(q, now = new Date()) {
-  const { segments, grammar, rest } = segmentQuery(q, now);
+  const { segments, grammar, rest, fixes, fixed } = segmentQuery(q, now);
   const audience = [], vibe = [], setting = [], activity = [], times = [], weekdays = [], districts = [], whens = [];
   const exclude = { activity: [], audience: [], times: [], setting: [] };
   let intensity = null, price = null, noise = null, outskirts = false;
@@ -218,7 +218,7 @@ export function parseQuery(q, now = new Date()) {
   // «к восьми на стендап», «в 9 вечеринка»: 7–11 без «утра/вечера» у вечерних форматов — это вечер
   if (hour && grammar.hourAmbiguous && (times.includes('evening') || times.includes('night') || activity.some(a => ['standup', 'party', 'concert', 'quiz', 'karaoke', 'jazz', 'mafia', 'theatre', 'dating', 'stol'].includes(a)))) hour = { from: Math.min(1439, hour.from + 720), to: Math.min(1439, hour.to + 720) };
   const parsed = { audience, vibe, setting, activity, intensity, price, times, weekdays, noise, hour, when, dates, districts, outskirts, kidAge, pmin, pmax, exclude, adult: grammar.adult, group: grammar.group,
-    segments: segments.map(s => ({ text: s.text, slot: s.slot, value: s.value, neg: s.neg || undefined })), rest, source: 'rules' };
+    segments: segments.map(s => ({ text: s.text, slot: s.slot, value: s.value, neg: s.neg || undefined })), fixes, fixed, rest, source: 'rules' };
   parsed.restHard = parsed.rest;
   return { ...parsed, human: humanize(parsed) };
 }
@@ -360,7 +360,7 @@ async function mergeLater(key, q, rules) {
       audience: arr('audience'), vibe: arr('vibe'), setting: arr('setting'), activity: arr('activity'),
       intensity: first.intensity || second.intensity, price: rules.price, // цена только из правил: «бесплатно» модели часто мерещится
       times: lead && p.times.length ? p.times : rules.times, weekdays: lead && p.weekdays.length ? p.weekdays : rules.weekdays, // время и день — явные слова, правила надёжнее
-      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, kidAge: rules.kidAge, dates: rules.dates, pmin: rules.pmin, pmax: rules.pmax, exclude: rules.exclude, segments: rules.segments, adult: rules.adult, group: rules.group, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
+      rest: [...new Set([...rules.rest, ...p.rest])].slice(0, 8), restHard: rules.rest, kidAge: rules.kidAge, fixes: rules.fixes, fixed: rules.fixed, dates: rules.dates, pmin: rules.pmin, pmax: rules.pmax, exclude: rules.exclude, segments: rules.segments, adult: rules.adult, group: rules.group, noise: rules.noise, hour: rules.hour, when: rules.when, districts: rules.districts, outskirts: rules.outskirts, // слова модели только ранжируют, слова гостя — фильтруют
       soft: lead ? {} : { activity: !rules.activity.length && p.activity.length > 0, vibe: !rules.vibe.length && p.vibe.length > 0, setting: !rules.setting.length && p.setting.length > 0, intensity: !rules.intensity && !!p.intensity, audience: !rules.audience.length && p.audience.length > 0 }, // догадки модели не отсекают события, а только поднимают подходящие
     };
     const usedModel = ['audience', 'vibe', 'setting', 'activity', 'times'].some(k => !rules[k].length && p[k].length) || (!rules.intensity && p.intensity) || p.rest.some(x => !rules.rest.includes(x));

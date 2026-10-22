@@ -4,7 +4,7 @@
 // 3) Газетир фраз: каждый маркер — префикс слова (многословные — подряд). Сегменты не пересекаются;
 //    длинный и точный маркер побеждает короткий («вечеринка» ≠ «вечер», «картинг» ≠ «картина»).
 // 4) Отрицания «не», «без», «кроме» перед сегментом. 5) Остаток — слова для текстового поиска.
-import { normalize, stem } from './search.js';
+import { normalize, stem, damerau, layoutSwap } from './search.js';
 
 const MONTHS = ['январ', 'феврал', 'март', 'апрел', 'ма', 'июн', 'июл', 'август', 'сентябр', 'октябр', 'ноябр', 'декабр'];
 const MONTH_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -71,9 +71,32 @@ export function makeSegmenter({ gazetteer, stop }) {
   for (const g of gazetteer) { const words = normalize(g.phrase).split(/[\s-]+/).filter(w => w.length >= 2 || /\d/.test(w)); if (words.length) G.push({ ...g, words, exact: /\s$/.test(g.phrase), mlen: words.join(' ').length }); } // «сап » с пробелом — только целое слово
   G.sort((a, b) => b.words.length - a.words.length || b.mlen - a.mlen);
   const NEG = new Set(['не', 'без', 'кроме', 'никаких', 'никакого', 'никакой']);
+  // Словарь для исправления опечаток: первые слова маркеров + слова грамматики
+  const GRAMMAR_WORDS = ['вечера', 'утра', 'ночи', 'полдень', 'полночь', 'рублей', 'рубля', 'человек', 'человека', 'следующие', 'следующей', 'следующую', 'неделе', 'неделю', 'через', 'дешевле', 'дороже', 'около', 'после', ...MONTH_GEN, ...Object.keys(NUMW).filter(w => w.length >= 5)];
+  const VOCAB = [...new Set([...G.map(g => g.words[0]), ...GRAMMAR_WORDS, ...MONTHS.filter(m => m.length > 2), 'мая', 'мае', 'май'])]; // основы месяцев: «ноябре», «марта» — не опечатки
+  const FIXABLE = VOCAB.filter(w => w.length >= 5 && /^[а-я]+$/.test(w));
+  const SHORT = VOCAB.filter(w => w.length === 4 && /^[а-я]+$/.test(w)); // «кино», «квиз», «йога»: одна ошибка, та же первая буква и длина
+  const known = t => /^\d/.test(t) || t.length < 4 || stop.has(t) || NEG.has(t) || VOCAB.some(w => t.startsWith(w));
+  // «веечром» → «вечером», «четвер» → «четверг», «rdbp» → «квиз»: ближайший маркер с допуском 1 (для длинных — 2), перестановка соседних букв — тоже 1
+  function fixToken(t) {
+    if (/^[a-z]+$/.test(t)) { const sw = layoutSwap(t); if (sw !== t && known(sw) && !known(t)) return sw; }
+    if (known(t) || !/^[а-я]+$/.test(t)) return t;
+    let best = null;
+    for (const w of FIXABLE) {
+      const thr = w.length >= 7 ? 2 : 1;
+      for (const L of [w.length, w.length - 1, w.length + 1]) {
+        if (L < 4 || L > t.length + 1) continue;
+        const pre = t.slice(0, L); const d = damerau(pre, w, thr); if (d > thr) continue;
+        if (!best || d < best.d || (d === best.d && w.length > best.w.length)) best = { w, L, d };
+      }
+    }
+    if (!best && (t.length === 4 || t.length === 5)) for (const w of SHORT) { if (w[0] !== t[0]) continue; const pre = t.slice(0, 4); if (damerau(pre, w, 1) <= 1 && (t.length === 4 || /^[аеиоуыюяй]$/.test(t[4]))) { best = { w, L: 4, d: 1 }; break; } }
+    return best ? best.w + t.slice(best.L) : t;
+  }
 
   return function segment(q, now = new Date()) {
-    const T = toks(q), used = new Array(T.length).fill(false), segs = [];
+    const raw = toks(q), T = raw.map(fixToken), used = new Array(T.length).fill(false), segs = [];
+    const fixes = raw.map((t, k) => t !== T[k] ? { from: t, to: T[k] } : null).filter(Boolean);
     const today = mskToday(now);
     const take = (i, len, seg) => { for (let k = i; k < i + len; k++) used[k] = true; segs.push({ i, len, text: T.slice(i, i + len).join(' '), ...seg }); };
     const free = (i, len) => { for (let k = i; k < i + len; k++) if (k >= T.length || used[k]) return false; return true; };
@@ -181,6 +204,6 @@ export function makeSegmenter({ gazetteer, stop }) {
     const rest = [];
     T.forEach((t, k) => { if (!used[k] && t.length > 1 && !stop.has(t) && !NEG.has(t) && !/^\d+$/.test(t)) rest.push(stem(t)); });
     segs.sort((a, b) => a.i - b.i);
-    return { tokens: T, segments: segs, grammar: out, rest };
+    return { tokens: T, segments: segs, grammar: out, rest, fixes, fixed: fixes.length ? T.join(' ') : null };
   };
 }

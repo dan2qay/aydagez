@@ -1356,3 +1356,40 @@ svg { display: block; }
 /* Шкала проката прокручивается внутри себя и не распирает колонку */
 .two-col > * { min-width: 0; }
 .busy-timeline { min-width: 0; max-width: 100%; }
+
+/* Лист календаря: прижат к низу и над нижней панелью, календарь — на всю ширину листа */
+.modal-bg.date-bg { z-index: 60; }
+.cal-sheet .cal { max-width: none; width: 100%; }
+.cal-sheet .cal-day { height: 46px; }
+.cal-sheet .cal-hint { border-radius: 16px; }
+.cal-quick { margin-top: 12px; justify-content: center; }
+@media (max-width: 900px) { .cal-sheet { max-height: 92vh; } }
+
+/* «Записи»: пример будущих записей */
+.demo-records { position: relative; }
+.demo-records h3 { display: flex; align-items: center; gap: 10px; }
+.demo-tag { background: var(--surface-2); color: var(--muted); }
+.demo-inner { border: 1px dashed var(--line-strong); border-radius: var(--r-l); padding: 8px 14px 14px; background: var(--surface); cursor: pointer; transition: filter .25s var(--ease), opacity .25s var(--ease); }
+.demo-records.locked .demo-inner { filter: blur(4px); opacity: .7; pointer-events: none; user-select: none; }
+.demo-group { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); margin: 10px 0 6px; }
+.demo-row { display: grid; grid-template-columns: 44px 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.demo-group + .demo-row { border-top: 0; }
+.demo-date { display: grid; justify-items: center; line-height: 1.1; }
+.demo-date b { font-size: 20px; }
+.demo-date span { font-size: 12px; color: var(--muted); }
+.demo-cover { width: 56px; height: 56px; border-radius: 12px; background-size: cover; background-position: center; display: grid; place-items: center; font-size: 24px; }
+.demo-body { display: grid; gap: 2px; min-width: 0; }
+.demo-body b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.demo-body > span { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.demo-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.demo-stars { color: #f59e0b; letter-spacing: 1px; }
+.demo-stack { display: grid; }
+.demo-stack > * { grid-area: 1 / 1; }
+.demo-cta { position: relative; z-index: 2; display: grid; place-items: center; padding: 16px; animation: subIn .2s var(--ease); }
+.demo-cta[hidden] { display: none; }
+.demo-cta-card { max-width: 420px; text-align: center; padding: 22px 22px 18px; border-radius: var(--r-l); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-3); }
+.demo-cta-card .e { font-size: 32px; }
+.demo-cta-card b { display: block; font-size: 17px; margin-top: 6px; }
+.demo-cta-card p { color: var(--muted); font-size: 14px; margin: 6px 0 14px; }
+.demo-cta-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+@media (max-width: 640px) { .demo-row { grid-template-columns: 36px 48px minmax(0, 1fr); } .demo-side { grid-column: 3; justify-self: start; } .demo-cover { width: 48px; height: 48px; } }

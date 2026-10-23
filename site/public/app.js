@@ -674,13 +674,13 @@
   // Месячный календарь листом снизу: выбрать день или период жестом, потом лист закрывается
   function calendarSheet(draft = null, after = null) {
     const rootM = $('#modal-root'); const close = () => { rootM.innerHTML = ''; };
-    const host = draft ? el('div', { class: 'modal-bg sheet-bg', style: 'z-index:60' }) : null;
+    const host = draft ? el('div', { class: 'modal-bg date-bg', style: 'z-index:60' }) : null;
     const cal = draft ? calendar(k => { draft.when = 'date'; draft.date = k; host.remove(); after?.(); }, (a, b) => { draft.when = 'range'; draft.from = a; draft.to = b; host.remove(); after?.(); }) : calendar(k => { pickWhen('date', k); close(); }, (a, b) => { pickRange(a, b); close(); });
-    if (draft) { host.addEventListener('click', ev => { if (ev.target === host) host.remove(); }); host.append(el('div', { class: 'sheet' }, el('div', { class: 'sheet-grip' }), el('div', { class: 'sheet-head' }, el('b', {}, 'Выберите день или период'), el('button', { type: 'button', class: 'icon-btn', onclick: () => host.remove() }, '✕')), cal)); document.body.append(host); return; }
-    rootM.append(el('div', { class: 'modal-bg sheet-bg', onclick: ev => { if (ev.target === ev.currentTarget) close(); } },
-      el('div', { class: 'sheet' }, el('div', { class: 'sheet-grip' }), el('div', { class: 'sheet-head' }, el('b', {}, 'Выберите день или период'), el('button', { type: 'button', class: 'icon-btn', onclick: close }, '✕')),
-        el('div', { class: 'meta', style: 'margin-bottom:8px' }, 'Зажмите день и проведите до нужной даты, чтобы выбрать период.'), cal,
-        el('div', { class: 'pills', style: 'margin-top:10px' }, [['today', 'Сегодня'], ['tomorrow', 'Завтра'], ['weekend', 'Выходные'], ['week', 'На неделе'], ['any', 'Все дни']].map(([k, t]) => el('button', { type: 'button', class: 'pill' + (S.when === k ? ' on' : ''), onclick: () => { pickWhen(k); close(); } }, t))))));
+    if (draft) { host.addEventListener('click', ev => { if (ev.target === host) host.remove(); }); host.append(el('div', { class: 'date-sheet cal-sheet' }, el('div', { class: 'sheet-grip' }), el('div', { class: 'sheet-head' }, el('b', {}, 'Выберите день или период'), el('button', { type: 'button', class: 'icon-btn', onclick: () => host.remove() }, '✕')), cal)); document.body.append(host); return; }
+    rootM.append(el('div', { class: 'modal-bg date-bg', onclick: ev => { if (ev.target === ev.currentTarget) close(); } },
+      el('div', { class: 'date-sheet cal-sheet' }, el('div', { class: 'sheet-grip' }), el('div', { class: 'sheet-head' }, el('b', {}, 'Выберите день или период'), el('button', { type: 'button', class: 'icon-btn', onclick: close }, '✕')),
+        cal,
+        el('div', { class: 'pills cal-quick' }, [['today', 'Сегодня'], ['tomorrow', 'Завтра'], ['weekend', 'Выходные'], ['week', 'На неделе'], ['any', 'Все дни']].map(([k, t]) => el('button', { type: 'button', class: 'pill' + (S.when === k ? ' on' : ''), onclick: () => { pickWhen(k); close(); } }, t))))));
   }
   function renderSide() {
     H.calCol.innerHTML = '';
@@ -1199,6 +1199,53 @@
     return frag;
   }
 
+  // Пример записей для того, у кого их ещё нет: настоящие ближайшие события, помеченные «пример».
+  // Нажатие размывает пример и объясняет, что сделать, чтобы записи стали настоящими.
+  function demoRecords() {
+    const box = el('section', { class: 'section demo-records' });
+    const inner = el('div', { class: 'demo-inner' });
+    const cta = el('div', { class: 'demo-cta', hidden: true });
+    box.append(el('h3', {}, 'Так будут выглядеть ваши записи', el('span', { class: 'tag demo-tag' }, 'пример')), el('div', { class: 'demo-stack' }, inner, cta)); // пример и приглашение в одной ячейке — блок растёт под ту часть, что выше
+    const lock = ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (box.classList.contains('locked')) return;
+      box.classList.add('locked'); cta.hidden = false; track('demo_records_click', { registered: !!me?.registered });
+    };
+    inner.addEventListener('click', lock, true);
+    cta.append(el('div', { class: 'demo-cta-card' },
+      el('div', { class: 'e' }, me?.registered ? '🎟️' : '🔐'),
+      el('b', {}, me?.registered ? 'Здесь появятся ваши события' : 'Чтобы эти записи стали вашими, зарегистрируйтесь'),
+      el('p', {}, me?.registered ? 'Запишитесь на первое событие — оно встанет сюда с напоминанием за сутки и QR-кодом на вход.' : 'Без паролей, за 20 секунд: имя и телефон или email. Потом — запись в один клик, напоминания и QR-код на вход.'),
+      el('div', { class: 'demo-cta-actions' },
+        me?.registered ? null : el('button', { type: 'button', class: 'btn btn-primary', onclick: () => profileModal({ gate: 'Регистрация', onDone: () => renderMy() }) }, 'Зарегистрироваться'),
+        el('a', { class: me?.registered ? 'btn btn-primary' : 'btn btn-outline', href: '#/' }, 'Найти событие'),
+        el('button', { type: 'button', class: 'btn btn-ghost', onclick: () => { box.classList.remove('locked'); cta.hidden = true; } }, 'Посмотреть пример'))));
+    const row = (e, opts = {}) => {
+      const d = opts.date || parseIso(e.date);
+      return el('div', { class: 'demo-row' },
+        el('div', { class: 'demo-date' }, el('b', {}, d.getDate()), el('span', {}, d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', ''))),
+        el('div', { class: 'demo-cover' + (e.cover ? ' has-img' : ''), style: e.cover ? `background-image:url(${e.cover})` : `background:${CAT_GRAD[e.category] || CAT_GRAD.culture}` }, e.cover ? '' : e.emoji),
+        el('div', { class: 'demo-body' }, el('b', {}, e.title), el('span', {}, `${opts.time || timeLabel(e)} · ${e.venue}`),
+          el('div', { class: 'demo-tags' }, ...(opts.tags || []).map(t => el('span', { class: 'tag ' + (t.cls || '') }, t.text)))),
+        el('div', { class: 'demo-side' }, opts.side || el('span', { class: 'tag going' }, '✓ Иду')));
+    };
+    const paint = list => {
+      inner.innerHTML = '';
+      const seen = new Set(), picks = [];
+      for (const e of list) { if (seen.has(e.category) || !e.cover) continue; seen.add(e.category); picks.push(e); if (picks.length === 3) break; }
+      if (picks.length < 3) for (const e of list) { if (picks.length === 3) break; if (!picks.includes(e)) picks.push(e); }
+      if (!picks.length) { inner.append(el('div', { class: 'empty' }, 'Записей пока нет — найдите событие на главной.')); return; }
+      const [a, b, c] = picks;
+      inner.append(el('div', { class: 'demo-group' }, 'Куда иду'));
+      if (a) inner.append(row(a, { tags: [{ text: '🔔 напомним за сутки' }, { text: '🎫 QR на вход', cls: 'pushkin' }] }));
+      if (b) inner.append(row(b, { tags: [{ text: '👥 идут 3 друга', cls: 'solo' }] }));
+      if (c) { inner.append(el('div', { class: 'demo-group' }, 'Были')); const past = addDays(today, -6); inner.append(row(c, { date: past, tags: [{ text: '✓ участие подтверждено', cls: 'free' }], side: el('span', { class: 'demo-stars' }, '★★★★★') })); }
+    };
+    paint([]);
+    api(`/api/events?from=${iso(today)}&to=${iso(addDays(today, 10))}&limit=80`).then(d => paint(d.events || [])).catch(() => {});
+    return box;
+  }
+
   // ---------- Кабинет пользователя ----------
   async function renderMy() {
     const root = $('#app'); root.innerHTML = ''; const rid = routeId;
@@ -1214,7 +1261,7 @@
       me?.registered && me.accountType === 'person' ? el('button', { type: 'button', class: 'btn btn-ghost', onclick: () => profileModal({ type: 'org' }) }, 'Стать организацией') : null,
       me?.registrations?.length ? el('button', { type: 'button', class: 'btn btn-outline', onclick: () => downloadIcs(me.registrations, 'Айдагез — мои записи') }, '📅 Все записи в календарь') : null,
       me?.isOrganizer ? el('a', { class: 'btn btn-ink', href: '#/cabinet' }, '🎪 Кабинет организатора') : null));
-    if (!me?.registrations?.length) page.append(el('div', { class: 'empty' }, el('div', { class: 'e' }, '🗓️'), el('b', {}, 'Пока нет записей.'), el('div', {}, 'Найдите событие на главной и нажмите «Записаться».'), el('div', {}, el('a', { class: 'btn btn-primary', href: '#/' }, 'К подбору'))));
+    if (!me?.registrations?.length) page.append(demoRecords());
     else page.append(el('div', { class: 'section' }, el('h3', {}, 'Куда иду'), rows(me.registrations)));
     if (me?.past?.length) page.append(el('div', { class: 'section' }, el('h3', {}, 'Были за 90 дней'), el('p', { class: 'help', style: 'margin-bottom:10px' }, 'Отзыв открывается, когда участие подтвердили вы и организатор (QR на входе или отметка «Был»).'), pastRows(me.past)));
     if (me?.follows?.length) page.append(el('div', { class: 'section' }, el('h3', {}, 'Подписки'), el('div', { class: 'pills' }, me.follows.map(o => el('a', { class: 'pill', href: `#/org/${o.slug}` }, o.name)))));

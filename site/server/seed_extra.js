@@ -132,6 +132,7 @@ export function generateExtra(fromDate, daysAhead = 60) {
       for (const t of tpl.times || [tpl.time]) {
         const row = makeEventRow({ ...tpl, time: t }, d);
         if ((tpl.times || []).length > 1) row.slug = `${tpl.key}-${row.slug.slice(tpl.key.length + 1)}-${t.replace(':', '')}`;
+        if ((tpl.times || []).length > 1) { let h = 0; for (const ch of row.slug) h = (h * 31 + ch.charCodeAt(0)) >>> 0; row.going_base = Math.min(tpl.capacity, Math.round(tpl.capacity * (h % 100) / 100)); } // у каждого сеанса своя занятость
         row.kind = tpl.kind || 'regular';
         row.meta = tpl.meta || {};
         row.keywords = tpl.keywords || [];

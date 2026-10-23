@@ -36,7 +36,7 @@
   const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const WD_PL = ['воскресеньям', 'понедельникам', 'вторникам', 'средам', 'четвергам', 'пятницам', 'субботам'];
   const LANGS = { ru: 'На русском', tt: 'На татарском', en: 'На английском' };
-  const WITH = [['solo', 'Один'], ['duo', 'Вдвоём'], ['friends', 'С друзьями'], ['kids', 'С детьми']];
+  const WITH = [['solo', 'Один'], ['duo', 'Вдвоём'], ['friends', 'С друзьями'], ['kids', 'С детьми'], ['dogs', 'С собакой']];
   const BUDGET = [['0', 'Бесплатно'], ['500', 'До 500 ₽'], ['1500', 'До 1 500 ₽']];
   const CAT_GRAD = { kids: 'linear-gradient(135deg,#fb7185,#f59e0b)', fun: 'linear-gradient(135deg,#f43f5e,#8b5cf6)', sport: 'linear-gradient(135deg,#0ea5e9,#22c55e)', games: 'linear-gradient(135deg,#f59e0b,#ef4444)', social: 'linear-gradient(135deg,#8b5cf6,#ec4899)', music: 'linear-gradient(135deg,#4f46e5,#06b6d4)', knowledge: 'linear-gradient(135deg,#f97316,#facc15)', culture: 'linear-gradient(135deg,#e11d48,#7c3aed)' };
   const MOODS = [
@@ -137,7 +137,7 @@
   // ---------- Выпадающие фильтры: в строке поиска и (на телефоне) над лентой ----------
   const CHEVRON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   const FILTERS = [
-    { key: 'withWhom', title: 'С кем идёте', any: 'С кем угодно', opts: [['solo', '🙋', 'Один'], ['duo', '👫', 'Вдвоём'], ['friends', '🎉', 'С друзьями'], ['kids', '🧒', 'С детьми']] },
+    { key: 'withWhom', title: 'С кем идёте', any: 'С кем угодно', opts: [['solo', '🙋', 'Один'], ['duo', '👫', 'Вдвоём'], ['friends', '🎉', 'С друзьями'], ['kids', '🧒', 'С детьми'], ['dogs', '🐕', 'С собакой']] },
     { key: 'budget', title: 'Бюджет на человека', any: 'Любой бюджет', custom: true, opts: [['0', '🆓', 'Бесплатно'], ['500', '💳', 'До 500 ₽'], ['1500', '💳', 'До 1 500 ₽'], ['3000', '💳', 'До 3 000 ₽']] },
     { key: 'tod', title: 'Время суток', any: 'Любое время', opts: [['morning', '🌅', 'Утром'], ['day', '☀️', 'Днём'], ['evening', '🌆', 'Вечером'], ['night', '🌙', 'Ночью']] },
     { key: 'noise', title: 'Атмосфера', any: 'Атмосфера', opts: [['quiet', '🤫', 'Тихо, спокойно'], ['loud', '🔊', 'Шумно, музыка']] },
@@ -304,7 +304,7 @@
     go('when');
   }
   function restart() {
-    S.q = ''; S.cat = null; S.sub = null; S.mood = null; S.cats = []; S.via = 'flow'; S.when = 'today'; S.withWhom = ''; S.kidAge = ''; S.budget = ''; S.tod = ''; S.noise = ''; S.subs = []; S.acts = []; S.districts = []; S.pmin = ''; S.pmax = ''; S.calOpen = false;
+    S.q = ''; S.cat = null; S.sub = null; S.mood = null; S.cats = []; S.via = 'flow'; S.when = 'any'; S.withWhom = ''; S.kidAge = ''; S.budget = ''; S.tod = ''; S.noise = ''; S.subs = []; S.acts = []; S.districts = []; S.pmin = ''; S.pmax = ''; S.calOpen = false;
     $('#nav-q').value = '';
     renderFilters(); // сброс фильтров виден и в шапке
     go('what');
@@ -352,7 +352,7 @@
     H.stage.innerHTML = '';
     const panel = el('div', { class: 'screen' });
     H.stage.append(panel);
-    ({ what: screenWhat, sub: screenSub, mood: screenMood, search: screenSearch }[S.screen] || screenFeed)(panel);
+    ({ sub: screenSub, mood: screenMood, search: screenSearch }[S.screen] || screenFeed)(panel); // главная = лента событий; категории открываются из строки поиска
     if (S.screen !== H.lastScreen) window.scrollTo(0, 0); H.lastScreen = S.screen; // мгновенно и только при смене экрана: плавная прокрутка выглядела как дёрганье
   }
   function stepper(active) {
@@ -398,9 +398,10 @@
     { key: 'kids', emoji: '👨‍👩‍👧', title: 'С детьми', desc: 'спектакли, мастер-классы, кружки, цирк, батуты', grad: 'linear-gradient(135deg,#fb7185,#f59e0b)', subs: ['kidstheatre', 'kidsclass', 'kidsedu', 'kidssport', 'kidsshow', 'kidscinema', 'circus', 'kidsclub', 'park', 'boat', 'skate', 'tour'] },
     { key: 'friends', emoji: '🧑‍🤝‍🧑', title: 'С друзьями', desc: 'квизы, VR, квесты, боулинг, вечеринки', grad: 'linear-gradient(135deg,#a855f7,#3b82f6)', subs: ['quiz', 'vr', 'quest', 'bowling', 'park', 'team', 'mafia', 'party', 'concert', 'standup', 'board', 'boat'] },
     { key: 'duo', emoji: '💞', title: 'Вдвоём', desc: 'кино, джаз, театр, теплоход, мастер-классы', grad: 'linear-gradient(135deg,#ec4899,#f43f5e)', subs: ['cinema', 'theatre', 'jazz', 'boat', 'tour', 'exhibition', 'workshop', 'classical', 'quest', 'bowling', 'skate', 'circus'] },
+    { key: 'dogs', emoji: '🐕', title: 'С собакой', desc: 'прогулки, пробежки, маркеты, экскурсии', grad: 'linear-gradient(135deg,#a3e635,#16a34a)', subs: ['walk', 'run', 'tour', 'market', 'park', 'boat'] },
     { key: 'solo', emoji: '🙋', title: 'Одному', desc: 'пробежки, лекции, настолки, новые люди', grad: 'linear-gradient(135deg,#14b8a6,#0ea5e9)', subs: ['run', 'yoga', 'lecture', 'book', 'lang', 'stol', 'newcomers', 'board', 'exhibition', 'anticafe', 'climb', 'cinema'] },
   ];
-  const WITH_LABEL = { kids: '👨‍👩‍👧 С детьми', friends: '🧑‍🤝‍🧑 С друзьями', duo: '💞 Вдвоём', solo: '🙋 Одному', tourist: '🧳 Гостям города' };
+  const WITH_LABEL = { dogs: '🐕 С собакой', kids: '👨‍👩‍👧 С детьми', friends: '🧑‍🤝‍🧑 С друзьями', duo: '💞 Вдвоём', solo: '🙋 Одному', tourist: '🧳 Гостям города' };
   const subAny = k => { for (const c of taxonomy) { const s = c.subs.find(x => x.key === k); if (s) return { ...s, cat: c.key }; } return null; };
   const cntShort = n => n ? `${n} ${plural(n, ['событие', 'события', 'событий'])}` : 'пока ничего';
   function browseGrid() {
@@ -615,16 +616,33 @@
     H.calCol = el('aside', { class: 'feed-side' });
     H.quick = el('div', { class: 'feed-quick' }); // периоды и кнопки рисуются сюда для совместимости; на экране их заменяет лента дней
     // Строка поиска сверху: запрос (уже без опечаток) можно поправить, фильтры — внутри строки
-    const fq = (H.fq = el('input', { type: 'search', value: S.q, placeholder: S.q ? '' : `${whatTitle().replace(/^✨ /, '')} — уточните словами`, 'aria-label': 'Поиск событий', enterkeyhint: 'search', autocomplete: 'off' }));
+    const hasPick = !!(S.cat || S.cats.length || S.withWhom || S.mood || S.subs.length || S.acts.length);
+    const fq = (H.fq = el('input', { type: 'search', value: S.q, placeholder: hasPick ? `${whatTitle().replace(/^✨ /, '')} — уточните словами` : '', 'aria-label': 'Поиск событий', enterkeyhint: 'search', autocomplete: 'off' }));
+    if (!hasPick) livePlaceholder(fq); // без выбранного раздела — примеры запросов, как в шапке
     const form = el('form', { class: 'hero-search feed-search', role: 'search', onsubmit: ev => { ev.preventDefault(); fq.blur(); setQuery(fq.value); } },
       el('span', { class: 'ico', html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' }),
       fq, el('div', { class: 'search-filters', 'data-filters': true }), el('button', { type: 'submit', class: 'go', 'aria-label': 'Найти' }, '→'));
     attachSuggest(fq, form, v => setQuery(v));
+    // Категории: показываются, когда человек нажал на строку поиска и ещё ничего не ввёл
+    H.browse = el('div', { class: 'browse-panel', hidden: true },
+      el('div', { class: 'entry-head' }, el('h2', {}, 'Знаем, чем вам заняться'), el('p', { class: 'meta' }, 'Выберите, с кем идёте или что любите, — или напишите своими словами.'), el('button', { type: 'button', class: 'icon-btn bp-close', 'aria-label': 'Закрыть', onclick: () => hideBrowse() }, '✕')),
+      browseGrid(), ghost('✨', 'Подобрать по настроению', 'Спокойно, активно или сюрприз — три варианта за 10 секунд', () => { hideBrowse(); go('mood'); }));
+    for (const inp of [fq, $('#nav-q')]) wireBrowse(inp);
     const calBtn = el('button', { type: 'button', class: 'day-pill cal-btn', title: 'Выбрать день или период', 'aria-label': 'Календарь', onclick: () => calendarSheet() }, el('span', { class: 'cal-ico', html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>' }), el('span', {}, 'даты'));
-    p.append(form, el('div', { class: 'feed-layout' }, el('div', { class: 'feed-main' }, el('div', { class: 'strip-row' }, calBtn, (H.strip = el('div', { class: 'day-strip feed-strip' }))), H.feed), H.calCol));
+    p.append(form, el('div', { class: 'feed-layout' }, el('div', { class: 'feed-main' }, H.browse, el('div', { class: 'strip-row' }, calBtn, (H.strip = el('div', { class: 'day-strip feed-strip' }))), H.feed), H.calCol));
     renderQuick(); renderSide();
     fetchFeed();
   }
+  function showBrowse() { if (H.browse?.isConnected) { H.browse.hidden = false; document.body.classList.add('browse-open'); } }
+  function hideBrowse() { if (H.browse) H.browse.hidden = true; document.body.classList.remove('browse-open'); }
+  function wireBrowse(inp) {
+    if (!inp || inp._browse) return; inp._browse = true;
+    inp.addEventListener('focus', () => { if (!inp.value.trim()) showBrowse(); });
+    inp.addEventListener('click', () => { if (!inp.value.trim()) showBrowse(); });
+    inp.addEventListener('input', () => { if (inp.value.trim()) hideBrowse(); else showBrowse(); });
+    inp.addEventListener('keydown', ev => { if (ev.key === 'Escape') { hideBrowse(); inp.blur(); } });
+  }
+  document.addEventListener('pointerdown', ev => { if (!H.browse || H.browse.hidden) return; if (ev.target.closest('.browse-panel, .feed-search, #nav-search, .modal-bg')) return; hideBrowse(); });
   const freshCal = () => calendar(k => pickWhen('date', k), (a, b) => pickRange(a, b));
   function pickWhen(key, date) { S.when = key; if (date) S.date = date; persist(); renderQuick(); if (H.cal?.isConnected) H.cal.replaceWith(freshCal()); fetchFeed(); }
   function pickRange(a, b) { S.when = 'range'; S.from = a; S.to = b; persist(); renderQuick(); if (H.cal?.isConnected) H.cal.replaceWith(freshCal()); fetchFeed(); toast(`Период: ${whenTitle()}`); }
@@ -883,6 +901,7 @@
       if (e.seriesKey && SLOTTED.has(e.kind)) { if (!bySeries.has(e.seriesKey)) { const g = []; bySeries.set(e.seriesKey, g); out.push(g); } bySeries.get(e.seriesKey).push(e); }
       else out.push([e]);
     }
+    for (const g of out) g.sort((a, b) => a.start.localeCompare(b.start)); // сеансы в карточке — по времени, а не по рейтингу
     return out;
   }
   function slotCard(g) {
@@ -917,7 +936,7 @@
   function groups(list) { return timeline(list); }
   const ageTag = e => el('span', { class: 'tag age' + (e.age >= 16 ? ' adult' : ''), title: 'Возрастная маркировка' }, `${e.age || 0}+`);
   const moreDates = e => { const m = H.moreDates?.get(e.seriesKey); return m ? el('span', { class: 'tag more' }, `ещё ${m.n} ${plural(m.n, ['дата', 'даты', 'дат'])} до ${fmtDM(parseIso(m.last))}`) : null; };
-  const tagEl = t => el('span', { class: 'tag ' + (t === 'можно одному' ? 'solo' : t.startsWith('на ') ? 'lang' : t === 'Пушкинская карта' ? 'pushkin' : t === 'бесплатно' ? 'free' : '') }, t);
+  const tagEl = t => el('span', { class: 'tag ' + (t === 'можно с собакой' ? 'dog' : t === 'можно одному' ? 'solo' : t.startsWith('на ') ? 'lang' : t === 'Пушкинская карта' ? 'pushkin' : t === 'бесплатно' ? 'free' : '') }, t);
   function card(e) {
     const d = parseIso(e.date), t = new Date(e.start);
     return el('a', { class: 'card' + (e.promoted ? ' is-promo' : ''), href: `#/event/${e.slug}`, onclick: () => track('card_click', { event_id: e.id, promoted: !!e.promoted }) },
@@ -955,7 +974,7 @@
         el('div', { class: 'by' }, el('span', { class: 'mini-avatar' }, e.organizer.name.replace(/^[«"]/, '').charAt(0)), 'Организатор: ', el('a', { href: `#/org/${e.organizer.slug}` }, e.organizer.name), e.orgRating ? el('span', { class: 'rating-mini' }, ` ★ ${e.orgRating} · ${e.orgReviews} ${plural(e.orgReviews, ['отзыв', 'отзыва', 'отзывов'])}`) : null, e.promoted ? el('span', { class: 'ad-badge', title: `erid ${e.erid || ''}` }, 'Реклама') : null)),
       el('div', { class: 'two-col' },
         el('div', {},
-          e.siblings?.length > 1 ? timesPick(e) : null,
+          e.kind === 'rental' && e.siblings?.length ? busyTimeline(e) : e.siblings?.length > 1 ? timesPick(e) : null,
           el('div', { class: 'facts' },
             fact('🗓️', fmtLong(d), `${fmtTime(t)}–${fmtTime(end)} · ${dur}`),
             fact('📍', e.venue, `${e.address} · ${e.district} район`),
@@ -987,6 +1006,29 @@
     refreshBar();
     bar.refresh = refreshBar;
     document.body.append(bar);
+  }
+  // Прокат: шкала дня как в планировщике Teams — каждый час виден занятым, частично занятым или свободным
+  function busyTimeline(e) {
+    const hm = iso => { const p = partsIn(new Date(iso)); return Number(p.hour) * 60 + Number(p.minute); }; // по казанскому времени, как подписи сеансов
+    const slots = [...e.siblings].sort((a, b) => a.start.localeCompare(b.start));
+    const step = e.duration || 60;
+    const from = Math.min(...slots.map(s => hm(s.start))), to = Math.max(...slots.map(s => hm(s.start) + step));
+    const span = Math.max(60, to - from), pct = m => ((m - from) / span * 100).toFixed(3) + '%';
+    const unit = e.meta?.unit_name || 'мест';
+    const track = el('div', { class: 'bt-track' });
+    for (let m = Math.ceil(from / 60) * 60; m <= to; m += 60) track.append(el('span', { class: 'bt-tick', style: `left:${pct(m)}` }, el('i', {}, `${String(Math.floor(m / 60)).padStart(2, '0')}:00`)));
+    for (const sb of slots) {
+      const st = hm(sb.start), busy = Math.min(sb.going, sb.capacity), free = sb.capacity - busy, share = busy / sb.capacity;
+      const cls = free === 0 ? 'full' : share >= 0.6 ? 'busy' : 'free';
+      track.append(el('a', { class: `bt-slot ${cls}` + (sb.id === e.id ? ' on' : ''), href: `#/event/${sb.slug}`, style: `left:${pct(st)};width:calc(${(step / span * 100).toFixed(3)}% - 3px)`, title: `${fmtTime(new Date(sb.start))} — занято ${busy} из ${sb.capacity}` },
+        el('i', { class: 'bt-fill', style: `height:${Math.round(share * 100)}%` }),
+        el('b', {}, fmtTime(new Date(sb.start))), el('small', {}, free === 0 ? 'занято' : `${free} своб.`)));
+    }
+    const cur = slots.find(sb => sb.id === e.id);
+    return el('div', { class: 'busy-timeline' },
+      el('div', { class: 'tp-label' }, 'Занятость по часам', el('span', { class: 'meta' }, ` · ${fmtDM(parseIso(e.date))} · ${e.capacity} ${unit}`)),
+      el('div', { class: 'bt-scroll' }, track),
+      el('div', { class: 'bt-legend' }, el('span', { class: 'free' }, 'свободно'), el('span', { class: 'busy' }, 'почти занято'), el('span', { class: 'full' }, 'занято'), cur ? el('span', { class: 'meta' }, `выбрано ${fmtTime(new Date(cur.start))}: свободно ${cur.capacity - Math.min(cur.going, cur.capacity)} из ${cur.capacity}`) : null));
   }
   function timesPick(e) {
     const label = e.kind === 'rental' ? 'Выберите час' : e.kind === 'groups' ? 'Выберите сеанс' : 'Выберите сеанс';
@@ -1031,6 +1073,13 @@
         stack.append(el('div', {}, el('div', { class: 'fine', style: 'margin:0 0 8px' }, 'Куда прислать напоминание за 24 часа? Одно сообщение, без рекламы.'), inp,
           el('button', { type: 'button', class: 'btn btn-ink btn-block', style: 'margin-top:8px', onclick: () => { if (inp.value.trim()) refresh('POST', { contact: inp.value.trim() }).then(r => r && toast('Напомним за 24 часа')); } }, '🔔 Напомнить')));
       } else stack.append(el('div', { class: 'fine' }, `Напоминание придёт за 24 часа: ${me.contact}`));
+    } else if (e.registration.type === 'here' && (e.meta?.tg || e.meta?.max || e.organizer.telegram || e.organizer.max)) {
+      // Запись у организатора в мессенджере: пока без CRM — переходим к нему в чат, а событие добавляем в «Записи» с напоминанием
+      const tg = e.meta?.tg || e.organizer.telegram, mx = e.meta?.max || e.organizer.max;
+      const go = (url, label) => { refresh('POST', { external: true }).catch(() => {}); track('messenger_click', { event_id: e.id, via: label }); openOut(url); };
+      if (tg) stack.append(el('button', { type: 'button', class: 'btn btn-primary btn-lg btn-block', onclick: () => go(tgLink(tg), 'telegram') }, '✈️ Записаться в Telegram'));
+      if (mx) stack.append(el('button', { type: 'button', class: 'btn ' + (tg ? 'btn-outline' : 'btn-primary btn-lg') + ' btn-block', onclick: () => go(maxLink(mx), 'max') }, '💬 Записаться в MAX'));
+      stack.append(el('div', { class: 'fine' }, 'Откроем чат с организатором — напишите, что хотите прийти. Событие появится в «Записях», напомним за 24 часа.'));
     } else if (e.registration.type === 'here') {
       stack.append(el('button', { type: 'button', class: 'btn btn-primary btn-lg btn-block', onclick: () => refresh('POST', {}).then(r => r && toast('Готово! Вы в списке 🎉')) }, ctaLabel(e)));
       stack.append(el('div', { class: 'fine' }, e.stol ? 'Депозит засчитывается в цену. Отмена раньше чем за 48 часов — возврат 100%.' : e.price ? 'Оплата на месте или организатору. Запись бесплатна, отмена в один клик.' : 'Без регистрации на сайте. Отмена в один клик.'));
@@ -1052,6 +1101,9 @@
 
   // ---------- Организатор ----------
   const tgLink = t => /^https?:/.test(t) ? t : 'https://t.me/' + String(t).replace(/^@/, '');
+  const maxLink = t => /^https?:/.test(t) ? t : 'https://max.ru/' + String(t).replace(/^@/, '');
+  // В мини-приложении Telegram ссылки на t.me открываются внутри Telegram, а не в браузере
+  const openOut = url => { const tg = window.Telegram?.WebApp; if (tg && /t\.me\//.test(url)) tg.openTelegramLink(url); else if (tg) tg.openLink(url); else window.open(url, '_blank', 'noopener'); };
   const urlOf = u => /^https?:/.test(u) ? u : 'https://' + u;
   async function renderOrg(slug) {
     const root = $('#app'); root.innerHTML = ''; const rid = routeId;
@@ -1554,7 +1606,7 @@
       const sch = getSchedule(); const pls = getPlaces();
       if (!sch.times.length) return toast('Укажите время');
       const body = { kind, title: v('title'), cat: catSel.value, sub: subSel.value || null, date: sch.date, times: sch.times, duration: sch.duration, recurrence: sch.recurrence,
-        price: pls.price, capacity: pls.capacity, meta: pls.meta, keywords: kw.value, lang: f.lang.value, venue: v('venue'), address: v('address'), district: f.district.value, organizer: v('organizer') || me?.name || '',
+        price: pls.price, capacity: pls.capacity, meta: { ...pls.meta, tg: v('tg') || undefined, max: v('maxh') || undefined }, keywords: kw.value, lang: f.lang.value, venue: v('venue'), address: v('address'), district: f.district.value, organizer: v('organizer') || me?.name || '',
         description: desc.value.trim(), video_url: video.value.trim() || null, age: Number(f.age.value), rules_ok: me?.rulesAccepted || !!f.rulesOk?.checked, with: WITH.map(([k]) => k).filter(k => f['w_' + k]?.checked), pushkin: f.pushkin.checked, registration: f.regExt.checked ? { type: 'external', url: v('url') } : { type: 'here' }, ...design.get() };
       const btn = form.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Публикуем…';
       try { const r = await api('/api/events', { method: 'POST', body }); facets = null; await loadMe(); toast(r.created > 1 ? `Создано событий: ${r.created}` : 'Опубликовано 🎉'); location.hash = r.created > 1 ? '#/cabinet' : `#/event/${r.first.slug}`; }
@@ -1568,9 +1620,10 @@
           const ageSel = select('age', [[0, '0+ · для всех'], [6, '6+'], [12, '12+'], [16, '16+'], [18, '18+ · только взрослые']], 0);
           const kidsBox = (f.w_kids = el('input', { type: 'checkbox' }));
           const kidsLbl = el('label', { class: 'toggle-check' }, kidsBox, el('span', {}, el('b', {}, '🧒 Можно с детьми'), el('small', {}, 'Покажем в подборках «С детьми»')));
+          const dogsLbl = el('label', { class: 'toggle-check' }, (f.w_dogs = el('input', { type: 'checkbox' })), el('span', {}, el('b', {}, '🐕 Можно с собаками'), el('small', {}, 'Покажем по запросам «с собакой»')));
           const sync = () => { const adult = Number(ageSel.value) >= 16; kidsBox.disabled = adult; if (adult) kidsBox.checked = false; kidsLbl.classList.toggle('off', adult); };
           ageSel.addEventListener('change', sync); sync();
-          return el('div', { class: 'grid2' }, field('Возраст', ageSel, true, 'Маркировка по закону о защите детей'), field('Дети', kidsLbl, 'opt'));
+          return el('div', {}, el('div', { class: 'grid2' }, field('Возраст', ageSel, true, 'Маркировка по закону о защите детей'), field('С кем можно', el('div', { class: 'toggle-stack' }, kidsLbl, dogsLbl), 'opt')));
         })(),
         el('div', { class: 'grid2' }, field('Место', input('venue', { required: true, placeholder: 'Парк Горького, у главного входа', oninput: quality }), true), field('Адрес', input('address', { placeholder: 'ул. Николая Ершова, 1', oninput: quality }), 'opt', 'Покажем на карте'))),
       section('3', 'Когда', null, sched),
@@ -1582,10 +1635,11 @@
             field('Организатор', input('organizer', { value: me?.name || '', placeholder: 'Название клуба, студии или ваше имя' }), 'opt', 'По умолчанию — имя из профиля')),
           el('div', { class: 'grid2' }, field('Язык', select('lang', [['ru', 'Русский'], ['tt', 'Татарский'], ['en', 'Английский']]), 'opt'), field('Видео', video, 'opt', 'VK Видео, Rutube или YouTube')),
           field('Ключевые слова', kw, 'opt', 'Как вас ищут гости: «сап», «новичкам», «с детьми»'),
-          el('div', { class: 'field' }, el('label', {}, 'Кому подходит', el('span', { class: 'opt-mark' }, ' · необязательно')), el('div', { class: 'checks' }, WITH.filter(([k]) => k !== 'kids').map(([k, t]) => el('label', {}, (f['w_' + k] = el('input', { type: 'checkbox', checked: true })), t)))),
+          el('div', { class: 'field' }, el('label', {}, 'Кому подходит', el('span', { class: 'opt-mark' }, ' · необязательно')), el('div', { class: 'checks' }, WITH.filter(([k]) => k !== 'kids' && k !== 'dogs').map(([k, t]) => el('label', {}, (f['w_' + k] = el('input', { type: 'checkbox', checked: true })), t)))),
           el('div', { class: 'field' }, el('label', {}, 'Метки и запись', el('span', { class: 'opt-mark' }, ' · необязательно')), el('div', { class: 'checks' }, el('label', {}, (f.pushkin = el('input', { type: 'checkbox' })), '🎫 Пушкинская карта'),
             el('label', {}, (f.regHere = el('input', { type: 'radio', name: 'reg', checked: true })), 'Запись у нас'), el('label', {}, (f.regExt = el('input', { type: 'radio', name: 'reg' })), 'Запись по ссылке')),
             input('url', { type: 'url', placeholder: 'https://… если запись по ссылке (Timepad, Qtickets, касса)', style: 'margin-top:10px' })),
+          el('div', { class: 'grid2' }, field('Telegram для записи', input('tg', { placeholder: '@username' }), 'opt'), field('MAX для записи', input('maxh', { placeholder: 'ник в MAX' }), 'opt', 'Кнопка «Записаться» откроет чат с вами')),
           el('div', { class: 'field' }, el('label', {}, 'Оформление', el('span', { class: 'opt-mark' }, ' · необязательно')), design.el),
           el('div', { class: 'quality' }, qBar, qText, qTips))),
       el('div', { class: 'nf-publish' }, summary, me?.rulesAccepted ? null : el('label', { class: 'toggle-check rules-check' }, (f.rulesOk = el('input', { type: 'checkbox', required: true })), el('span', {}, el('b', {}, 'Событие соответствует правилам площадки'), el('small', {}, 'Законное, с верной ценой и возрастом. ', el('a', { href: '#/rules', target: '_blank' }, 'Правила')))), el('button', { type: 'submit', class: 'btn btn-primary btn-lg btn-block' }, 'Опубликовать')),
@@ -1784,7 +1838,7 @@
     cabState.focusAnnounce = false;
     const save = async () => {
       try {
-        await api(`/api/organizers/${o.id}`, { method: 'PATCH', body: { kind: kindSel.value || undefined, about: about.get(), address: f.address.value, hours: f.hours.value, phone: f.phone.value, telegram: f.telegram.value, vk: f.vk.value, website: f.website.value, contact: f.contact.value, logo: st.logo, cover: st.cover, announcement: aTitle.value.trim() ? { title: aTitle.value.trim(), text: aText.value.trim(), from: aFrom.value || null, until: aUntil.value || null } : null } });
+        await api(`/api/organizers/${o.id}`, { method: 'PATCH', body: { kind: kindSel.value || undefined, about: about.get(), address: f.address.value, hours: f.hours.value, phone: f.phone.value, telegram: f.telegram.value, max: f.max.value, vk: f.vk.value, website: f.website.value, contact: f.contact.value, logo: st.logo, cover: st.cover, announcement: aTitle.value.trim() ? { title: aTitle.value.trim(), text: aText.value.trim(), from: aFrom.value || null, until: aUntil.value || null } : null } });
         toast('Профиль сохранён'); renderCabinet();
       } catch (err) { toast(err.body?.message || 'Не получилось сохранить'); }
     };
@@ -1797,6 +1851,7 @@
       el('section', { class: 'nf-section' }, el('div', { class: 'nf-head' }, el('span', { class: 'nf-num' }, '2'), el('div', {}, el('h2', {}, 'Где и как связаться'), el('p', {}, 'Адрес даёт кнопку «Маршрут», контакты — «Написать» и «Позвонить».'))),
         el('div', { class: 'grid2' }, el('div', { class: 'field' }, el('label', {}, 'Адрес'), inp('address', 'ул. Баумана, 44')), el('div', { class: 'field' }, el('label', {}, 'Часы работы'), inp('hours', 'пн–вс 10:00–22:00'))),
         el('div', { class: 'grid2' }, el('div', { class: 'field' }, el('label', {}, 'Телефон'), inp('phone', '+7 843 …')), el('div', { class: 'field' }, el('label', {}, 'Telegram'), inp('telegram', '@username или ссылка'))),
+        el('div', { class: 'grid2' }, el('div', { class: 'field' }, el('label', {}, 'MAX'), inp('max', 'ник или ссылка max.ru/…')), el('div', { class: 'help', style: 'align-self:center' }, 'Если указан Telegram или MAX, кнопка «Записаться» на ваших событиях ведёт к вам в чат.')),
         el('div', { class: 'grid2' }, el('div', { class: 'field' }, el('label', {}, 'ВКонтакте'), inp('vk', 'vk.com/…')), el('div', { class: 'field' }, el('label', {}, 'Сайт'), inp('website', 'example.ru'))),
         el('div', { class: 'field' }, el('label', {}, 'Контакт для гостей (виден записавшимся)'), inp('contact', 'Email или телефон администратора'))),
       annBox,
@@ -2042,6 +2097,16 @@
   }
   document.addEventListener('DOMContentLoaded', async () => {
     initTheme(); initNavSearch(); initMobile(); initFooter();
+    // Открыт как мини-приложение Telegram (бот → кнопка меню): подключаем SDK, тема и кнопка «Назад» как в Telegram
+    if (/tgWebApp/.test(location.hash) || new URLSearchParams(location.search).has('tg')) {
+      const sc = document.createElement('script'); sc.src = 'https://telegram.org/js/telegram-web-app.js';
+      sc.onload = () => { const tg = window.Telegram?.WebApp; if (!tg) return; tg.ready(); tg.expand(); document.body.classList.add('in-telegram');
+        if (tg.colorScheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        const syncBack = () => { if ((location.hash || '#/').startsWith('#/event') || (location.hash || '#/').startsWith('#/org')) tg.BackButton.show(); else tg.BackButton.hide(); };
+        tg.BackButton.onClick(() => history.back()); window.addEventListener('hashchange', syncBack); syncBack(); };
+      document.head.append(sc);
+      if (/tgWebApp/.test(location.hash)) history.replaceState(null, '', location.pathname + '?tg=1#/');
+    }
     { const u = new URL(location.href); const ok = u.searchParams.get('auth'), bad = u.searchParams.get('auth_error');
       if (ok || bad) { setTimeout(() => toast(bad || `Вы вошли через ${ok === 'yandex' ? 'Яндекс ID' : ok === 'google' ? 'Google' : ok}`), 400); u.searchParams.delete('auth'); u.searchParams.delete('auth_error'); history.replaceState(null, '', u.pathname + u.search + u.hash); } }
     loadConfig();

@@ -96,6 +96,7 @@ ALTER TABLE organizers ADD COLUMN IF NOT EXISTS kind text, ADD COLUMN IF NOT EXI
   ADD COLUMN IF NOT EXISTS announcement jsonb, ADD COLUMN IF NOT EXISTS promoted_until timestamptz, ADD COLUMN IF NOT EXISTS erid text, ADD COLUMN IF NOT EXISTS invite_code text;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS paused boolean DEFAULT false;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS age smallint;
+ALTER TABLE organizers ADD COLUMN IF NOT EXISTS max text;
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS avatar uuid, ADD COLUMN IF NOT EXISTS about text, ADD COLUMN IF NOT EXISTS account_type text, ADD COLUMN IF NOT EXISTS registered_at timestamptz;
 CREATE TABLE IF NOT EXISTS organizer_members (
   organizer_id int REFERENCES organizers(id) ON DELETE CASCADE, client_id uuid NOT NULL, role text DEFAULT 'manager', created_at timestamptz DEFAULT now(),
@@ -178,6 +179,14 @@ export async function ensureSeed({ reseed = false } = {}) {
   for (const t of EXTRA_SERIES) if (t.age != null) await q(`UPDATE events SET age=$1 WHERE series_key=$2 AND age IS DISTINCT FROM $1`, [t.age, t.key]);
   await q(`UPDATE events SET age = CASE subcategory_key ${Object.entries(SUB_AGE).map(([k, v]) => `WHEN '${k}' THEN ${v}`).join(' ')} ELSE 0 END WHERE age IS NULL`);
   await q(`UPDATE events SET with_whom = array_remove(with_whom, 'kids') WHERE age >= 16 AND 'kids' = ANY(with_whom)`);
+  // С собаками: прогулки, пробежки, маркеты и пешие экскурсии на улице
+  await q(`UPDATE events SET with_whom = array_append(with_whom, 'dogs'), tags = array_append(tags, 'можно с собакой')
+           WHERE subcategory_key IN ('run', 'walk', 'market', 'tour') AND COALESCE(kind, '') NOT IN ('rental', 'sessions', 'groups') AND NOT ('dogs' = ANY(with_whom)) AND source = 'seed'`);
+  await q(`UPDATE events SET with_whom = array_remove(with_whom, 'dogs'), tags = array_remove(tags, 'можно с собакой') WHERE kind IN ('rental', 'sessions', 'groups') AND 'dogs' = ANY(with_whom) AND source = 'seed'`);
+  // Демо: у сеансов и проката одной серии разная занятость по часам (раньше все часы были одинаковыми)
+  await q(`UPDATE events SET going_base = LEAST(capacity, floor(capacity * (abs(hashtext(slug)) % 100) / 100.0)::int) WHERE source = 'seed' AND kind IN ('rental', 'sessions', 'groups')`); // детерминированно: при каждом старте одинаково
+  // Наши собственные форматы: запись в Telegram и MAX
+  await q(`UPDATE organizers SET telegram = COALESCE(telegram, '@aydagez'), max = COALESCE(max, 'aydagez') WHERE slug = 'aydagez'`);
   if (reseed) await q(`DELETE FROM events WHERE source='seed'`);
   const today = new Date();
   const horizon = new Date(today); horizon.setDate(today.getDate() + 30);

@@ -77,7 +77,7 @@ app.post('/api/track', async (req, res, next) => {
 
 // ---------- Данные событий с кэшем ----------
 const EVENT_SQL = `
-  SELECT e.*, o.name AS organizer_name, o.slug AS organizer_slug, o.kind AS organizer_kind, o.logo AS organizer_logo, o.verified AS organizer_verified, o.promoted_until AS org_promoted_until, o.erid AS org_erid, s.title AS sub_title, s.emoji AS sub_emoji, s.keywords AS sub_keywords,
+  SELECT e.*, o.telegram AS organizer_telegram, o.max AS organizer_max, o.name AS organizer_name, o.slug AS organizer_slug, o.kind AS organizer_kind, o.logo AS organizer_logo, o.verified AS organizer_verified, o.promoted_until AS org_promoted_until, o.erid AS org_erid, s.title AS sub_title, s.emoji AS sub_emoji, s.keywords AS sub_keywords,
          c.title AS cat_title, c.emoji AS cat_emoji,
          (SELECT count(*) FROM registrations r WHERE r.event_id = e.id)::int AS reg_count,
          (SELECT round(avg(rv.rating)::numeric, 1)::float FROM reviews rv WHERE rv.organizer_id = e.organizer_id) AS org_rating,
@@ -93,7 +93,7 @@ function serialize(row, registeredIds = new Set()) {
     sub: row.subcategory_key, subTitle: row.sub_title, subEmoji: row.sub_emoji, subKeywords: row.sub_keywords || [],
     emoji: row.emoji, start: row.start_at.toISOString(), date: isoDate(row.start_at), duration: row.duration_min, price: row.price, lang: row.lang,
     venue: row.venue, address: row.address, district: row.district,
-    organizer: { id: row.organizer_id, name: row.organizer_name, slug: row.organizer_slug, kind: row.organizer_kind || null, logo: row.organizer_logo ? `/api/files/${row.organizer_logo}` : null, verified: !!row.organizer_verified },
+    organizer: { id: row.organizer_id, telegram: row.organizer_telegram || null, max: row.organizer_max || null, name: row.organizer_name, slug: row.organizer_slug, kind: row.organizer_kind || null, logo: row.organizer_logo ? `/api/files/${row.organizer_logo}` : null, verified: !!row.organizer_verified },
     orgPromoted: !!(row.org_promoted_until && new Date(row.org_promoted_until) > new Date()), paused: !!row.paused,
     with: row.with_whom || [], solo: row.solo, stol: row.stol, age: row.age ?? 0,
     registration: { type: row.registration_type, label: row.registration_label, url: row.registration_url },
@@ -207,7 +207,8 @@ app.get('/api/events', async (req, res, next) => {
       const hardWords = parsed.restHard || parsed.rest; const hardHits = hardWords.length ? search(hardWords.join(' '), docs, vocab).hits : new Map();
       let found = tagSignal ? pool.filter(e => (aiScores.get(e.id) || 0) >= 0.6) : (hardWords.length ? pool.filter(e => hardHits.has(e.id)) : pool);
       if (!sf.audience && parsed.audience.includes('kids')) found = found.filter(e => e.with.includes('kids') && e.age < 16);
-      if (parsed.kidAge != null) found = found.filter(e => e.age <= parsed.kidAge); // «с ребёнком 5 лет» — без 6+ и старше
+      if (parsed.kidAge != null) found = found.filter(e => e.age <= parsed.kidAge);
+      if (!sf.audience && parsed.audience.includes('dogs')) found = found.filter(e => e.with.includes('dogs')); // «с собакой» — только туда, куда пускают с собаками // «с ребёнком 5 лет» — без 6+ и старше
       if (parsed.price === 'free') found = found.filter(e => e.price === 0);
       if (parsed.weekdays.length) found = found.filter(e => parsed.weekdays.includes(new Date(e.date + 'T12:00:00').getDay()));
       const dr = parsed.dates ? { from: parsed.dates.from, to: parsed.dates.to } : parsed.when ? dateRangeFor(parsed.when) : null;
@@ -368,7 +369,7 @@ function orgPublic(o) {
   const promoted = !!(o.promoted_until && new Date(o.promoted_until) > new Date());
   const ann = o.announcement && typeof o.announcement === 'object' ? o.announcement : null;
   const annActive = ann && ann.title && (!ann.until || ann.until >= isoDate(new Date())) && (!ann.from || ann.from <= isoDate(new Date()));
-  return { id: o.id, slug: o.slug, name: o.name, kind: o.kind || null, kindTitle: ORG_KINDS[o.kind]?.title || null, about: o.about, website: o.website, contact: o.contact, phone: o.phone, telegram: o.telegram, vk: o.vk,
+  return { id: o.id, slug: o.slug, name: o.name, kind: o.kind || null, kindTitle: ORG_KINDS[o.kind]?.title || null, about: o.about, website: o.website, contact: o.contact, phone: o.phone, telegram: o.telegram, max: o.max || null, vk: o.vk,
     address: o.address, lat: o.lat, lng: o.lng, hours: o.hours, verified: !!o.verified, logo: o.logo ? `/api/files/${o.logo}` : null, logoId: o.logo || null, cover: o.cover ? `/api/files/${o.cover}` : null, coverId: o.cover || null,
     announcement: annActive ? ann : null, promoted, erid: o.erid || null, createdAt: o.created_at };
 }
@@ -495,6 +496,7 @@ app.post('/api/events', async (req, res, next) => {
     const tags = [];
     if (price === 0) tags.push('бесплатно');
     if (withList.includes('solo')) tags.push('можно одному');
+    if (withList.includes('dogs')) tags.push('можно с собакой');
     if (b.lang === 'tt') tags.push('на татарском');
     if (b.lang === 'en') tags.push('на английском');
     if (b.pushkin) tags.push('Пушкинская карта');
@@ -552,6 +554,7 @@ function cleanMeta(m) {
   if (!m || typeof m !== 'object') return {};
   const out = {};
   for (const k of ['units', 'group_size', 'groups', 'step', 'seats']) { const v = Number(m[k]); if (Number.isFinite(v) && v > 0) out[k] = Math.round(v); }
+  for (const k of ['tg', 'max']) if (typeof m[k] === 'string' && m[k].trim()) out[k] = m[k].trim().slice(0, 120); // запись через Telegram / MAX организатора
   for (const k of ['open_from', 'open_to']) if (typeof m[k] === 'string' && /^\d{1,2}:\d{2}$/.test(m[k])) out[k] = m[k];
   if (typeof m.unit_name === 'string') out.unit_name = m.unit_name.slice(0, 40);
   return out;
@@ -820,7 +823,7 @@ app.patch('/api/organizers/:id', async (req, res, next) => {
     const id = Number(req.params.id);
     if (!(await ownsOrganizer(req.clientId, id))) return res.status(403).json({ error: 'forbidden' });
     const b = req.body || {};
-    const fields = { about: cleanStr(b.about, 4000), website: cleanStr(b.website, 200), contact: cleanStr(b.contact, 200), phone: cleanStr(b.phone, 40), telegram: cleanStr(b.telegram, 80), vk: cleanStr(b.vk, 120), address: cleanStr(b.address, 200), hours: cleanStr(b.hours, 200),
+    const fields = { about: cleanStr(b.about, 4000), website: cleanStr(b.website, 200), contact: cleanStr(b.contact, 200), phone: cleanStr(b.phone, 40), telegram: cleanStr(b.telegram, 80), max: cleanStr(b.max, 120), vk: cleanStr(b.vk, 120), address: cleanStr(b.address, 200), hours: cleanStr(b.hours, 200),
       kind: ORG_KINDS[b.kind] ? b.kind : undefined, lat: Number.isFinite(Number(b.lat)) && b.lat !== null && b.lat !== '' ? Number(b.lat) : undefined, lng: Number.isFinite(Number(b.lng)) && b.lng !== null && b.lng !== '' ? Number(b.lng) : undefined,
       logo: b.logo === null ? null : UUID.test(String(b.logo || '')) ? b.logo : undefined, cover: b.cover === null ? null : UUID.test(String(b.cover || '')) ? b.cover : undefined };
     if (b.announcement === null) fields.announcement = null;

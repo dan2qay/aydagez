@@ -11,6 +11,7 @@ import { nearestScenarios, scenarioAnswer, SCENARIOS } from './scenarios.js';
 
 // Словарь признаков. Каждый признак: ключ → список стемов-маркеров.
 const AUDIENCE = {
+  dogs: ['собак', 'собачк', 'пес ', 'псом', 'щенк', 'питомц', 'питомец', 'с питомцем', 'dog'],
   kids: ['ребенок', 'ребен', 'дети', 'детей', 'детьми', 'детям', 'детк', 'детск', 'сын', 'дочь', 'дочк', 'малыш', 'школьник', 'подрост'],
   family: ['родствен', 'родител', 'родным', 'родных', 'семьей', 'семьёй', 'семье', 'семья', 'семей', 'мамой', 'маму', 'мама', 'папой', 'папу', 'папа', 'бабушк', 'дедушк', 'сестр', 'брат', 'племян', 'тетей', 'тётей', 'тетю', 'тётю', 'дяд', 'внук'],
   solo: ['один', 'одна', 'одному', 'одной', 'сам', 'соло', 'незнаком', 'познаком', 'новые люди', 'компани'],
@@ -113,7 +114,7 @@ const hasAny = (text, markers) => markers.some(m => hit(text, m));
 const pick = (text, dict) => Object.entries(dict).filter(([, markers]) => hasAny(text, markers)).map(([k]) => k);
 
 // «Сильная модель» для события: пока правила по подкатегории и тексту. Возвращает единую схему тегов.
-export const TAG_VERSION = 16;
+export const TAG_VERSION = 17;
 // Спортивные занятия: у события с любым из них есть и общий «sport»; в запросе конкретный вид вытесняет общий
 export const SPORT_ACTS = ['run', 'yoga', 'skate', 'bike', 'water', 'climb', 'team', 'football', 'volleyball', 'basketball', 'badminton', 'pingpong', 'roller', 'sup', 'wake', 'nordic', 'swim'];
 // Занятия, которые гость называет точно: если названо — показываем только его (волейбол ≠ теннис, кино ≠ театр)
@@ -129,6 +130,7 @@ export function tagEvent(e) {
   if ((e.with || []).includes('kids') || hasAny(text, AUDIENCE.kids)) audience.add('kids');
   if ((e.with || []).includes('solo')) audience.add('solo');
   if ((e.with || []).includes('duo')) audience.add('couple');
+  if ((e.with || []).includes('dogs')) audience.add('dogs');
   if (hasAny(text, AUDIENCE.tourist)) audience.add('tourist');
   if (hasAny(text, AUDIENCE.newcomer)) audience.add('newcomer');
   const vibe = new Set(base.vibe); pick(text, VIBE).forEach(v => vibe.add(v));
@@ -229,7 +231,7 @@ export function parseQuery(q, now = new Date()) {
 export function humanize(p) {
   const { audience = [], vibe = [], setting = [], activity = [], price = null, times = [], weekdays = [] } = p;
   const human = [];
-  if (audience.includes('kids')) human.push(p.kidAge != null ? `ребёнку ${p.kidAge} ${p.kidAge % 10 === 1 && p.kidAge !== 11 ? 'год' : [2, 3, 4].includes(p.kidAge % 10) && ![12, 13, 14].includes(p.kidAge) ? 'года' : 'лет'}` : 'с детьми'); if (audience.includes('solo')) human.push('одному'); if (audience.includes('couple')) human.push('вдвоём'); if (audience.includes('friends')) human.push('с друзьями'); if (audience.includes('family')) human.push('с семьёй'); if (audience.includes('tourist')) human.push('гостям города'); if (audience.includes('newcomer')) human.push('новичкам');
+  if (audience.includes('kids')) human.push(p.kidAge != null ? `ребёнку ${p.kidAge} ${p.kidAge % 10 === 1 && p.kidAge !== 11 ? 'год' : [2, 3, 4].includes(p.kidAge % 10) && ![12, 13, 14].includes(p.kidAge) ? 'года' : 'лет'}` : 'с детьми'); if (audience.includes('solo')) human.push('одному'); if (audience.includes('couple')) human.push('вдвоём'); if (audience.includes('friends')) human.push('с друзьями'); if (audience.includes('family')) human.push('с семьёй'); if (audience.includes('dogs')) human.push('с собакой'); if (audience.includes('tourist')) human.push('гостям города'); if (audience.includes('newcomer')) human.push('новичкам');
   if (setting.includes('outdoor')) human.push('на улице'); if (setting.includes('water')) human.push('у воды'); if (setting.includes('food')) human.push('с едой');
   if (vibe.includes('calm')) human.push('спокойно'); if (vibe.includes('active')) human.push('активно'); if (vibe.includes('party')) human.push('вечеринка'); if (vibe.includes('smart')) human.push('познавательно'); if (vibe.includes('romantic')) human.push('романтично'); if (vibe.includes('creative')) human.push('творчество');
   weekdays.forEach(d => human.push(WEEKDAY_HUMAN[d]));
